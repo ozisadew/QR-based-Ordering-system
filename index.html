@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Urban Plate</title>
+<style>
+:root{--bg:#faf8f5;--card:#fff;--text:#222;--mute:#777;--line:#e6e0d8;--accent:#c2410c;--ok:#15803d;--bad:#b91c1c;--warn:#a16207;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1a1917;--card:#262421;--text:#f1ede8;--mute:#a09a92;--line:#3a3733;--accent:#fb923c;--ok:#4ade80;--bad:#f87171;--warn:#facc15}}
+:root[data-theme="dark"]{--bg:#1a1917;--card:#262421;--text:#f1ede8;--mute:#a09a92;--line:#3a3733;--accent:#fb923c;--ok:#4ade80;--bad:#f87171;--warn:#facc15}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
+header{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+header h1{font-size:17px;margin:0 auto 0 0}
+nav button{background:none;border:1px solid var(--line);color:var(--text);padding:7px 12px;border-radius:8px;cursor:pointer;font-size:14px}
+nav button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+main{max-width:900px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+h2{font-size:16px;margin:4px 0 12px}
+.mute{color:var(--mute);font-size:13px}
+button.p{background:var(--accent);color:#fff;border:0;padding:9px 14px;border-radius:8px;cursor:pointer;font-size:14px}
+button.g{background:none;border:1px solid var(--line);color:var(--text);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px}
+button.ok{background:var(--ok);color:#fff;border:0;padding:9px 14px;border-radius:8px;cursor:pointer}
+button.no{background:var(--bad);color:#fff;border:0;padding:9px 14px;border-radius:8px;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+input,select{padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--text);font-size:15px;width:100%}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0}
+.code{font-family:ui-monospace,monospace;font-size:24px;letter-spacing:4px;font-weight:700}
+.tag{font-size:12px;padding:2px 8px;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.pending{color:var(--warn)}.preparing{color:var(--accent)}.accepted{color:var(--accent)}.ready{color:var(--ok)}.rejected{color:var(--bad)}.served{color:var(--mute)}.open{color:var(--ok)}.closed{color:var(--mute)}
+.err{color:var(--bad);font-size:14px;margin-top:8px}
+.qty{display:flex;align-items:center;gap:8px}
+.qty button{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--text);font-size:16px;cursor:pointer}
+.stack{display:grid;gap:8px;max-width:320px}
+hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sticky{position:sticky;bottom:8px;z-index:5;box-shadow:0 4px 18px rgba(0,0,0,.18)}
+.late{border-color:var(--bad)}
+@media (pointer:coarse){button.p,button.g,button.ok,button.no,nav button{min-height:44px}.qty button{width:40px;height:40px}}
+
+:root{--r:14px;--sh:0 1px 2px rgba(0,0,0,.05),0 6px 20px rgba(0,0,0,.06)}
+header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px)}
+.card{border-radius:var(--r);box-shadow:var(--sh);transition:transform .15s,box-shadow .15s}
+.dish:hover{transform:translateY(-2px)}
+button{transition:transform .08s,opacity .15s,background .15s}button:active:not(:disabled){transform:scale(.96)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;margin:0 -2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);color:var(--text);padding:8px 14px;border-radius:99px;font-size:14px;cursor:pointer}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.dtag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:99px;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);margin:0 4px 2px 0}
+.add{width:100%;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:9px;font-size:14px;font-weight:600;cursor:pointer}
+.qty.on{justify-content:space-between;background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:10px;padding:3px}
+.qty.on button{border:0;background:var(--accent);color:#fff}
+.bar{display:flex;align-items:center;gap:12px}
+.bar .cnt{background:var(--accent);color:#fff;border-radius:99px;min-width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:11px 18px;border-radius:99px;font-size:14px;z-index:50;box-shadow:var(--sh);animation:tin .25s}
+@keyframes tin{from{opacity:0;transform:translate(-50%,12px)}}
+textarea{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--text);font:inherit;font-size:15px;resize:vertical}
+.onote{font-size:13px;color:var(--warn);margin-top:2px}
+@media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr);gap:10px}header h1{font-size:15px}main{padding:12px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+body.cx{--bg:#14110f;--card:rgba(255,255,255,.06);--text:#f5efe9;--mute:#a8a098;--line:rgba(255,255,255,.13);--accent:#f97316;--sh:0 8px 30px rgba(0,0,0,.35);
+background:radial-gradient(600px 400px at 85% -5%,rgba(249,115,22,.28),transparent 60%),radial-gradient(500px 400px at -10% 40%,rgba(249,115,22,.12),transparent 60%),#14110f;background-attachment:fixed;color-scheme:dark}
+body.cx header{background:transparent;border:0;backdrop-filter:none}
+body.cx main{padding-bottom:110px}
+body.cx .card{background:var(--card);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+body.cx select option{color:#222}
+body.cx .sticky{bottom:84px;background:rgba(30,26,23,.88)}
+.hi{margin:6px 0 0;font-size:15px;color:var(--mute)}
+.hero{font-size:34px;line-height:1.1;font-weight:800;margin:4px 0 16px}.hero b{color:var(--accent)}
+.search{display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid var(--line);background:var(--card);border-radius:16px;margin-bottom:14px}
+.search input{border:0;background:none;padding:14px 0;outline:0}
+.cats{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 14px;scrollbar-width:none}.cats::-webkit-scrollbar{display:none}
+.cat{flex:none;width:68px;padding:10px 0 8px;border-radius:18px;border:1px solid var(--line);background:var(--card);color:var(--text);cursor:pointer;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.cat span{font-size:26px}.cat.on{background:linear-gradient(160deg,rgba(249,115,22,.45),rgba(249,115,22,.12));border-color:var(--accent)}
+.promo{display:flex;justify-content:space-between;align-items:center;padding:18px;border-radius:22px;margin-bottom:16px;border:1px solid var(--line);background:linear-gradient(120deg,rgba(249,115,22,.3),rgba(255,255,255,.04))}
+.promo b{font-size:20px;display:block}.promo em{font-style:normal;color:var(--accent)}.promo .big{font-size:56px}
+.pill{background:linear-gradient(180deg,#fb923c,#ea580c);color:#fff;border:0;border-radius:99px;padding:10px 18px;font-weight:700;cursor:pointer;margin-top:8px}
+.hs{display:flex;gap:12px;overflow-x:auto;padding:0 2px 14px;scrollbar-width:none;scroll-snap-type:x mandatory}.hs::-webkit-scrollbar{display:none}
+.pop{flex:none;width:150px;scroll-snap-align:start;padding:10px;border-radius:20px}
+.pop .row{padding:6px 0 0}
+.plus{width:34px;height:34px;border-radius:10px;border:0;background:var(--accent);color:#fff;font-size:20px;cursor:pointer;flex:none}
+.sec{display:flex;justify-content:space-between;align-items:baseline;margin:6px 2px 10px}.sec h2{margin:0;font-size:18px}
+.dish{border-radius:20px!important}
+.bnav{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:30;display:flex;justify-content:space-around;padding:8px;border-radius:24px;background:rgba(32,28,25,.85);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--line);max-width:600px;margin:0 auto;box-shadow:var(--sh)}
+.bnav button{background:none;border:0;color:var(--mute);display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;padding:6px 10px;border-radius:14px;cursor:pointer}
+.bnav button span{font-size:20px}.bnav button.on{color:var(--accent)}
+.ov{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;animation:tin .2s}
+.sheet{width:100%;max-width:560px;max-height:92vh;overflow:auto;background:#1d1916;border-radius:28px 28px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));border:1px solid var(--line)}
+.sw{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-top:1px solid var(--line);cursor:pointer}
+.sw i{width:46px;height:26px;border-radius:99px;background:#4b4540;position:relative;transition:.2s}.sw i:after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+.sw.on i{background:var(--accent)}.sw.on i:after{left:23px}
+.cta{display:flex;align-items:center;gap:10px;margin-top:12px}.cta .pill{flex:1;margin:0;padding:14px;font-size:16px}
+
+body.mg main{max-width:1280px}
+.mshell{display:grid;grid-template-columns:210px 1fr;gap:16px;align-items:start}
+.msb{position:sticky;top:64px;display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:20px;background:rgba(32,28,25,.7);border:1px solid var(--line);backdrop-filter:blur(14px)}
+.msb .brand{font-weight:800;font-size:16px;padding:8px 10px 12px}.msb .brand em{font-style:normal;color:var(--accent)}
+.msb button{display:flex;gap:10px;align-items:center;text-align:left;background:none;border:0;color:var(--text);padding:11px 12px;border-radius:12px;font-size:14px;cursor:pointer}
+.msb button.on{background:linear-gradient(90deg,#fb923c,#ea580c);color:#fff;font-weight:600}
+.msb hr{width:100%;margin:8px 0}
+.mtop{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.mtop h1{margin:0;font-size:26px}.crumb{font-size:13px;color:var(--mute)}.crumb b{color:var(--accent);font-weight:600}
+.mcols{display:grid;grid-template-columns:1fr 310px;gap:14px;align-items:start}
+.id{display:grid;grid-template-columns:1fr 250px;gap:14px;margin-bottom:14px}
+.bal{background:linear-gradient(135deg,rgba(249,115,22,.4),rgba(249,115,22,.08));text-align:center}
+.bal small{letter-spacing:1px;font-weight:700}.bal .v{font-size:30px;font-weight:800;color:#fff;margin-top:4px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}.kv small{display:block;color:var(--mute);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.tabs2{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.tabs2 button{background:none;border:0;color:var(--mute);padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:2px solid transparent}.tabs2 button.on{color:var(--accent);border-color:var(--accent);font-weight:600}
+.tw{overflow-x:auto}.tbl{width:100%;border-collapse:collapse;font-size:14px;min-width:460px}
+.tbl th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--mute);padding:10px 8px;background:rgba(255,255,255,.04)}
+.tbl td{padding:10px 8px;border-bottom:1px solid var(--line)}.tbl .r{text-align:right}
+.tot{display:flex;justify-content:space-between;align-items:center;padding-top:12px;font-weight:700}.tot b:last-child{font-size:22px;color:var(--accent)}
+.ov2 .row{border-bottom:0;padding:5px 0}.ov2 .hd{background:#ea580c;color:#fff;margin:-14px -14px 10px;padding:11px 14px;border-radius:14px 14px 0 0;font-weight:700;font-size:13px;letter-spacing:.5px}
+.acts{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.act{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:12px;cursor:pointer}.act span{font-size:24px}
+@media (max-width:900px){.mshell,.mcols,.id{grid-template-columns:1fr}.msb{position:static;flex-direction:row;overflow-x:auto}.msb .brand,.msb hr{display:none}.msb button{white-space:nowrap}}
+@media print{header,.msb,.acts,.bnav{display:none!important}body.cx{background:#fff;color:#000}}
+
+.board{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px}
+.stat{padding:14px}.stat small{display:block;color:var(--mute);font-size:11px;text-transform:uppercase;letter-spacing:.5px}.stat b{font-size:26px}
+@media (max-width:700px){.board{grid-template-columns:1fr}}
+.ic{width:1.15em;height:1.15em;vertical-align:-.2em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.bnav button span .ic,.msb button span .ic{width:20px;height:20px}
+.cat span .ic{width:28px;height:28px}.act span .ic{width:26px;height:26px}.promo .big .ic{width:56px;height:56px;stroke-width:1.5;color:var(--accent)}
+
+.bh{text-align:center;padding:14px 8px 8px;margin-bottom:6px}
+.bh svg{width:min(340px,86%);height:auto;display:block;margin:0 auto}
+.bh .wel{font:700 clamp(28px,8vw,40px) Georgia,"Times New Roman",serif;letter-spacing:.32em;margin:6px 0 2px .32em;background:linear-gradient(180deg,#f8e9a1,#c9a227 55%,#8a6a12);-webkit-background-clip:text;background-clip:text;color:transparent}
+.bh .bh-tag{font:italic 16px Georgia,serif;color:var(--mute);margin:0 0 12px}
+.bh .feat{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.bh .feat span{font-size:12.5px;padding:6px 12px;border-radius:99px;border:1px solid rgba(212,175,55,.45);color:var(--text);background:rgba(212,175,55,.08)}
+.ctr{text-align:center;max-width:440px;margin-left:auto;margin-right:auto}.ctr .stack{margin-left:auto;margin-right:auto;max-width:340px;text-align:left}.ctr input,.ctr select{text-align:center}
+.bh.sm svg{width:min(240px,70%)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🍽️ The Urban Plate</h1>
+  <nav id="nav"></nav>
+</header>
+<main id="app"></main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+
+<script>
+var RAW_MENU=[
+["Chicken Fried Rice",1450,"Mains","rice","Wok-fried rice with chicken, egg and vegetables",[]],
+["Seafood Fried Rice",1850,"Mains","rice2","Fried rice with prawns, squid and fish",[]],
+["Chicken Kottu",1350,"Mains","kottu","Chopped roti stir-fried with chicken, egg and vegetables",["🌶️ Spicy","⭐ Popular"]],
+["Cheese Kottu",1650,"Mains","kottuc","Classic kottu topped with melted cheese",["⭐ Popular"]],
+["Chicken Biriyani",1950,"Mains","biryani","Fragrant spiced rice with tender chicken and egg",["🌶️ Spicy"]],
+["Grilled Chicken & Rice",2250,"Mains","grill","Char-grilled chicken served with seasoned rice",[]],
+["Spaghetti Bolognese",2300,"Mains","pasta","Spaghetti in a rich, slow-cooked beef tomato sauce",[]],
+["Chicken Alfredo Pasta",2100,"Mains","alfredo","Creamy parmesan sauce with grilled chicken",[]],
+["BBQ Chicken Burger",1950,"Mains","burger","Juicy chicken patty, BBQ sauce, lettuce and cheese",["⭐ Popular"]],
+["Seafood Pizza",3200,"Mains","pizza","Thin-crust pizza with prawns, squid and mozzarella",[]],
+["French Fries",650,"Sides","fries","Golden, crispy and lightly salted",["⭐ Popular","🌱 Veg"]],
+["Cheese Fries",950,"Sides","fries2","Crispy fries smothered in melted cheese sauce",["🌱 Veg"]],
+["Chicken Nuggets",850,"Sides","nuggets","Crunchy breaded chicken bites with dip",[]],
+["Chicken Wings (6 pcs)",1250,"Sides","wings","Six glazed wings, hot and sticky",["🌶️ Spicy"]],
+["Garlic Bread",550,"Sides","bread","Toasted baguette with garlic butter and herbs",["🌱 Veg"]],
+["Onion Rings",700,"Sides","rings","Thick-cut onion rings in a crisp batter",["🌱 Veg"]],
+["Mozzarella Sticks",1100,"Sides","mozz","Crisp outside, stretchy melted cheese inside",["🌱 Veg"]],
+["Coleslaw Salad",450,"Sides","slaw","Fresh cabbage and carrot in a creamy dressing",["🌱 Veg"]],
+["Coca-Cola",300,"Drinks","coke","Ice-cold can",[]],
+["Sprite",300,"Drinks","sprite","Ice-cold can",[]],
+["Fanta",300,"Drinks","fanta","Ice-cold can",[]],
+["Fresh Orange Juice",550,"Drinks","oj","Freshly squeezed oranges",["🌱 Veg"]],
+["Passion Fruit Juice",600,"Drinks","pf","Sweet and tangy, served over ice",["🌱 Veg"]],
+["Iced Coffee",650,"Drinks","coffee","Chilled coffee with milk over ice",[]],
+["Chocolate Milkshake",750,"Drinks","shakec","Thick chocolate shake topped with cream",["⭐ Popular"]],
+["Strawberry Milkshake",750,"Drinks","shakes","Creamy shake made with real strawberries",[]],
+["Mineral Water",200,"Drinks","water","500 ml bottle",[]],
+["Chocolate Lava Cake",850,"Desserts","lava","Warm cake with a molten chocolate centre",["⭐ Popular"]],
+["New York Cheesecake",950,"Desserts","cheese","Rich baked cheesecake on a biscuit base",[]],
+["Brownie with Ice Cream",900,"Desserts","brownie","Fudgy brownie with a scoop of vanilla ice cream",[]],
+["Chocolate Sundae",650,"Desserts","sundae","Ice cream, chocolate sauce and a cherry",[]],
+["Vanilla Ice Cream",450,"Desserts","vanilla","Two scoops of creamy vanilla",[]],
+["Waffle with Nutella",1100,"Desserts","waffle","Crisp waffle drizzled with Nutella",[]],
+["Caramel Pudding",550,"Desserts","pudding","Silky pudding with golden caramel",[]],
+["Chocolate Mousse",700,"Desserts","mousse","Light and airy dark chocolate mousse",[]]];
+var MENU=RAW_MENU.map(function(r,i){return {id:i+1,name:r[0],price:r[1],cat:r[2],pic:r[3],desc:r[4],tags:r[5]}});
+var CATPIC={Mains:"rice",Sides:"fries",Drinks:"oj",Desserts:"cheese"};
+/* dish illustrations (100x70) */
+var PL='<ellipse cx="50" cy="42" rx="44" ry="25" fill="#fff"/><ellipse cx="50" cy="41" rx="34" ry="18" fill="#f1e9df"/>';
+function dots(a,n){var s="";for(var i=0;i<n;i++){var x=30+(i*37)%40,y=30+(i*23)%20;s+='<circle cx="'+x+'" cy="'+y+'" r="2.2" fill="'+a[i%a.length]+'"/>'}return s}
+function bits(n,cs){var s="";for(var i=0;i<n;i++){var x=28+(i*29)%44,y=28+(i*17)%22;s+='<rect x="'+x+'" y="'+y+'" width="8" height="3.5" rx="1.5" fill="'+cs[i%cs.length]+'" transform="rotate('+(i*47%180)+' '+(x+4)+' '+(y+2)+')"/>'}return s}
+function can(c){return '<rect x="36" y="8" width="28" height="54" rx="6" fill="'+c+'"/><ellipse cx="50" cy="9" rx="14" ry="3" fill="#d1d5db"/><path d="M36 30q14-8 28 0v10q-14-8-28 0z" fill="#fff" opacity=".9"/>'}
+function glass(c,x){return '<path d="M30 14h40l-5 48H35z" fill="#fff" opacity=".35"/><path d="M32 24h36l-3.500 38H35.500z" fill="'+c+'"/>'+(x||"")}
+function shake(c){return '<path d="M32 22h36l-4 40H36z" fill="'+c+'"/><path d="M30 22q4-14 20-14t20 14z" fill="#fff"/><circle cx="50" cy="8" r="4" fill="#dc2626"/>'}
+function cup(a,b){return '<path d="M28 34h44q0 24-22 24T28 34z" fill="#fff" opacity=".6"/><circle cx="40" cy="30" r="11" fill="'+a+'"/><circle cx="58" cy="30" r="11" fill="'+b+'"/><circle cx="49" cy="18" r="4" fill="#dc2626"/><rect x="44" y="56" width="12" height="8" fill="#d1d5db"/>'}
+var ART={
+rice:PL+'<ellipse cx="50" cy="36" rx="25" ry="14" fill="#f4d58d"/>'+dots(["#4ade80","#fff","#ea580c","#a16207"],10),
+rice2:PL+'<ellipse cx="50" cy="36" rx="25" ry="14" fill="#f4d58d"/>'+dots(["#4ade80","#fff"],7)+'<path d="M34 30q8-8 14 0z M52 28q8-8 14 0z" fill="#fb7185"/><path d="M42 40q8-8 14 0z" fill="#f9a8d4"/>',
+biryani:PL+'<ellipse cx="50" cy="36" rx="25" ry="14" fill="#d97706"/>'+dots(["#fef3c7","#7c2d12","#fbbf24"],12)+'<ellipse cx="62" cy="32" rx="7" ry="5" fill="#fff"/><circle cx="62" cy="32" r="2.800" fill="#fbbf24"/>',
+kottu:PL+bits(26,["#d4a24c","#ea580c","#4ade80","#fef3c7","#8b5a2b"]),
+kottuc:PL+bits(22,["#d4a24c","#ea580c","#4ade80","#8b5a2b"])+'<path d="M32 34q8-6 14 0t14 0t8 4q-12 8-36 2z" fill="#fbbf24"/>',
+grill:PL+'<ellipse cx="38" cy="40" rx="15" ry="9" fill="#f4d58d"/><ellipse cx="62" cy="36" rx="14" ry="9" fill="#92400e"/><rect x="72" y="32" width="9" height="4" rx="2" fill="#fef3c7"/><path d="M52 34l20 4M54 40l16 2" stroke="#451a03" stroke-width="1.500"/>',
+pasta:PL+'<ellipse cx="50" cy="38" rx="22" ry="12" fill="none" stroke="#fde68a" stroke-width="4"/><ellipse cx="50" cy="38" rx="13" ry="7" fill="none" stroke="#fcd34d" stroke-width="4"/><ellipse cx="50" cy="35" rx="9" ry="5" fill="#b91c1c"/><circle cx="46" cy="34" r="1.500" fill="#4ade80"/>',
+alfredo:PL+'<ellipse cx="50" cy="38" rx="22" ry="12" fill="none" stroke="#fef3c7" stroke-width="4"/><ellipse cx="50" cy="38" rx="13" ry="7" fill="none" stroke="#fde68a" stroke-width="4"/><rect x="42" y="30" width="8" height="5" rx="2" fill="#d4a24c"/><rect x="52" y="33" width="8" height="5" rx="2" fill="#d4a24c"/><circle cx="50" cy="38" r="1.500" fill="#4ade80"/>',
+burger:'<path d="M22 30q0-20 28-20t28 20z" fill="#f59e0b"/><circle cx="38" cy="20" r="1.200" fill="#fff"/><circle cx="50" cy="16" r="1.200" fill="#fff"/><circle cx="60" cy="21" r="1.200" fill="#fff"/><path d="M20 32q6 5 10 0t10 0t10 0t10 0t10 0v4H20z" fill="#4ade80"/><path d="M22 36h56l-6 6H28z" fill="#fbbf24"/><rect x="22" y="40" width="56" height="9" rx="4" fill="#7c2d12"/><path d="M22 50h56q0 12-28 12T22 50z" fill="#f59e0b"/>',
+pizza:'<circle cx="50" cy="38" r="31" fill="#e8a05a"/><circle cx="50" cy="38" r="27" fill="#fbbf24"/><path d="M50 11v54M23 38h54" stroke="#e8a05a" stroke-width="1.200"/><path d="M34 26q6-6 10 0z M58 44q6-6 10 0z M40 50q6-6 10 0z" fill="#fb7185"/><circle cx="60" cy="28" r="3" fill="#4ade80"/><circle cx="36" cy="42" r="3" fill="#dc2626"/><circle cx="52" cy="22" r="2.500" fill="#fff"/>',
+fries:'<g stroke="#fbbf24" stroke-width="5" stroke-linecap="round"><path d="M34 40V14M42 40V8M50 40V12M58 40V6M66 40V14"/></g><path d="M28 36h44l-5 28H33z" fill="#dc2626"/>',
+fries2:'<g stroke="#fbbf24" stroke-width="5" stroke-linecap="round"><path d="M34 40V14M42 40V8M50 40V12M58 40V6M66 40V14"/></g><path d="M34 22q8 6 14 0t16 2" stroke="#f59e0b" stroke-width="3.500" fill="none"/><path d="M28 36h44l-5 28H33z" fill="#dc2626"/>',
+nuggets:PL+'<rect x="30" y="30" width="14" height="11" rx="5" fill="#d97706"/><rect x="46" y="26" width="14" height="11" rx="5" fill="#e5a13a"/><rect x="56" y="38" width="14" height="10" rx="5" fill="#d97706"/><rect x="38" y="42" width="13" height="9" rx="4" fill="#e5a13a"/><circle cx="72" cy="30" r="5" fill="#dc2626"/>',
+wings:PL+'<g fill="#b45309"><ellipse cx="36" cy="34" rx="9" ry="6" transform="rotate(-20 36 34)"/><ellipse cx="52" cy="30" rx="9" ry="6" transform="rotate(10 52 30)"/><ellipse cx="64" cy="38" rx="9" ry="6" transform="rotate(-10 64 38)"/><ellipse cx="44" cy="46" rx="9" ry="6" transform="rotate(15 44 46)"/></g><g fill="#fef3c7"><circle cx="28" cy="30" r="2.500"/><circle cx="72" cy="42" r="2.500"/></g>',
+bread:PL+'<g fill="#d4a24c"><rect x="26" y="34" width="22" height="9" rx="4" transform="rotate(-12 37 38)"/><rect x="40" y="28" width="22" height="9" rx="4" transform="rotate(-6 51 32)"/><rect x="52" y="38" width="22" height="9" rx="4" transform="rotate(4 63 42)"/></g><g fill="#4ade80"><circle cx="34" cy="36" r="1.500"/><circle cx="50" cy="30" r="1.500"/><circle cx="64" cy="41" r="1.500"/></g>',
+rings:PL+'<g fill="none" stroke="#e5a13a" stroke-width="5"><circle cx="38" cy="38" r="8"/><circle cx="54" cy="34" r="8"/><circle cx="62" cy="46" r="7"/><circle cx="44" cy="48" r="6"/></g>',
+mozz:PL+'<g fill="#e5a13a"><rect x="30" y="32" width="26" height="7" rx="3" transform="rotate(-10 43 35)"/><rect x="38" y="42" width="26" height="7" rx="3" transform="rotate(8 51 45)"/><rect x="46" y="28" width="24" height="7" rx="3" transform="rotate(14 58 31)"/></g><path d="M56 36q6 2 4 6" stroke="#fde68a" stroke-width="2.500" fill="none"/>',
+slaw:'<path d="M20 34h60q0 28-30 28T20 34z" fill="#fff"/><path d="M26 34q6-14 24-14t24 14z" fill="#d9f99d"/>'+dots(["#fb923c","#bef264","#fff"],9).replace(/cy="(\d+)"/g,function(m,y){return 'cy="'+(+y-6)+'"'}),
+coke:can("#dc2626"),sprite:can("#16a34a"),fanta:can("#f97316"),
+oj:glass("#fb923c",'<circle cx="68" cy="14" r="7" fill="#f97316"/><path d="M56 4l8 14" stroke="#f9a8d4" stroke-width="2.500"/>'),
+pf:glass("#fbbf24",'<path d="M56 4l8 14" stroke="#f9a8d4" stroke-width="2.500"/><circle cx="42" cy="40" r="2" fill="#451a03"/><circle cx="56" cy="46" r="2" fill="#451a03"/>'),
+coffee:glass("#7c4a21",'<path d="M32 24h36l-.8 8H32.800z" fill="#fde68a"/><path d="M58 4l6 16" stroke="#e5e7eb" stroke-width="2.500"/>'),
+shakec:shake("#7c4a21"),shakes:shake("#f472b6"),
+water:'<rect x="42" y="6" width="16" height="7" rx="2" fill="#2563eb"/><path d="M40 14h20l4 10v36q0 4-4 4H40q-4 0-4-4V24z" fill="#bae6fd"/><rect x="38" y="34" width="24" height="14" fill="#38bdf8"/>',
+lava:PL+'<path d="M32 46q0-22 18-22t18 22z" fill="#451a03"/><ellipse cx="50" cy="30" rx="6" ry="3" fill="#92400e"/><path d="M50 30q-3 10 4 14" stroke="#92400e" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="70" cy="42" r="4" fill="#dc2626"/>',
+cheese:PL+'<path d="M28 46L72 38V26L28 34z" fill="#fde68a"/><path d="M28 46L72 38v4L28 50z" fill="#d4a24c"/><circle cx="62" cy="26" r="5" fill="#dc2626"/>',
+brownie:PL+'<rect x="26" y="32" width="26" height="18" rx="3" fill="#451a03" transform="rotate(-6 39 41)"/><circle cx="62" cy="36" r="10" fill="#fff7ed"/><path d="M60 28q4 4 0 8" stroke="#92400e" stroke-width="2" fill="none"/>',
+sundae:cup("#fbcfe8","#7c4a21"),vanilla:cup("#fff7ed","#fde68a"),
+waffle:PL+'<rect x="30" y="24" width="40" height="32" rx="5" fill="#e5a13a"/><path d="M40 24v32M50 24v32M60 24v32M30 34h40M30 44h40" stroke="#b45309" stroke-width="1.500"/><path d="M32 30q10 8 20 0t18 4" stroke="#451a03" stroke-width="3" fill="none"/>',
+pudding:PL+'<path d="M30 46q0-22 20-22t20 22z" fill="#d97706"/><path d="M30 46q0-4 20-4t20 4q0 5-20 5t-20-5z" fill="#92400e"/>',
+mousse:'<path d="M30 22h40l-6 40H36z" fill="#fff" opacity=".4"/><path d="M33 28h34l-4.500 34H37.500z" fill="#5b2c0e"/><path d="M33 28q8-12 17-8t17 8z" fill="#7c4a21"/><circle cx="50" cy="14" r="4" fill="#dc2626"/>'};
+var BASEN=MENU.length;var CATS=["All","Mains","Sides","Drinks","Desserts"];
+function noteOf(o){return o.note?'<div class="onote">📝 '+esc(o.note)+'</div>':''}
+function toast(t){var e=document.createElement("div");e.className="toast";e.textContent=t;document.body.appendChild(e);iconize(e);setTimeout(function(){e.remove()},2600)}
+function setCat(c){session.cat=c;render()}
+var KEY="restaurant_demo_v2";
+function newCode(){return String(Math.floor(1000+Math.random()*9000))}
+function fresh(){var t={};for(var i=1;i<=6;i++)t[i]={code:null};return {tables:t,orders:[],reqs:[],games:[],calls:[],payments:[],users:{},photos:{},reviews:[],offers:defOffers(),log:[],paid:[],ratings:[],info:defInfo(),scores:{memory:[],tap:[]},seq:1,dishes:[],menu2:1}}
+var RAW=null;
+function load(){try{var s=localStorage.getItem(KEY);if(s){RAW=s;s=JSON.parse(s);s.games=s.games||[];s.calls=s.calls||[];s.users=s.users||{};s.photos=s.photos||{};s.reviews=s.reviews||[];s.offers=s.offers||defOffers();s.log=s.log||[];s.paid=s.paid||[];s.ratings=s.ratings||[];s.info=s.info||defInfo();s.payments=s.payments||[];s.dishes=s.dishes||[];if(!s.menu2){s.menu2=1;s.photos={};s.reviews=[];s.dishes=[];s.info.name="The Urban Plate"}s.scores=s.scores||{memory:[],tap:[]};return s}}catch(e){}return fresh()}
+var S=load();
+function save(){try{var j=JSON.stringify(S);localStorage.setItem(KEY,j);RAW=j}catch(e){}}
+window.addEventListener("storage",function(e){if(e.key===KEY){S=load();render()}});
+setInterval(function(){var c;try{c=localStorage.getItem(KEY)}catch(e){return}if(c!==RAW){S=load();render()}},1000);
+setInterval(function(){if(view==='kitchen')render()},30000);
+
+var view=(location.hash||"#customer").slice(1);
+var session={table:null,reqId:null,cart:{},err:"",tab:"menu",game:null,gid:null,pid:Math.random().toString(36).slice(2),name:"Guest"+Math.floor(10+Math.random()*90),waiter:"Nimal"};
+var VIEWS=["customer","waiter","kitchen","manager"];
+var qrMode=false,role=null;try{role=sessionStorage.getItem('role')}catch(e){}
+var ACCESS={waiter:["waiter"],kitchen:["kitchen"],manager:["waiter","kitchen","manager"]};
+function pinOf(r){var p=(S.info&&S.info.pins)||{};return p[r]||({waiter:'1111',kitchen:'2222',manager:'1234'})[r]}
+function unlock(){var v=document.getElementById('pin').value.trim();var r=['manager','waiter','kitchen'].filter(function(x){return pinOf(x)===v})[0];if(r){role=r;try{sessionStorage.setItem('role',r)}catch(e){}session.pinErr='';render()}else{session.pinErr='Wrong PIN. Try again.';render()}}
+function lock(){role=null;try{sessionStorage.removeItem('role')}catch(e){}go('customer')}
+/* ---------- Brand hero (logo + welcome) ---------- */
+function logoSvg(){
+  var star=function(x,y,r){var p=[];for(var i=0;i<10;i++){var a=-Math.PI/2+i*Math.PI/5,d=i%2?r*0.45:r;p.push((x+d*Math.cos(a)).toFixed(1)+","+(y+d*Math.sin(a)).toFixed(1))}return '<polygon points="'+p.join(" ")+'" fill="url(#lg)"/>'};
+  var curl=function(f){return '<g transform="'+(f?'translate(360 0) scale(-1 1)':'')+'" fill="none" stroke="url(#lg)" stroke-width="2" stroke-linecap="round"><path d="M34 84c-8-16-26-14-26-2 0 8 10 9 12 3"/><path d="M52 80c-6-9-14-10-20-6"/><path d="M34 140c-8 16-26 14-26 2 0-8 10-9 12-3"/><path d="M52 144c-6 9-14 10-20 6"/></g>'};
+  return '<svg viewBox="0 0 360 200" role="img" aria-label="The Urban Plate logo" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f8e9a1"/><stop offset=".55" stop-color="#c9a227"/><stop offset="1" stop-color="#8a6a12"/></linearGradient></defs>'+
+  '<g fill="none" stroke="url(#lg)" stroke-width="2"><circle cx="180" cy="100" r="96"/><circle cx="180" cy="100" r="84"/></g>'+
+  curl(0)+curl(1)+
+  '<path d="M22 82h316l8 8v8l-4 4v12l4 4v8l-8 8H22l-8-8v-8l4-4v-12l-4-4v-8z" transform="translate(0 4)" fill="var(--bg,#14110f)" stroke="url(#lg)" stroke-width="2.2"/>'+
+  '<circle cx="30" cy="110" r="2.6" fill="url(#lg)"/><circle cx="330" cy="110" r="2.6" fill="url(#lg)"/>'+
+  '<text x="180" y="118" text-anchor="middle" font-family="Georgia,\'Times New Roman\',serif" font-weight="700" font-size="31" fill="url(#lg)" textLength="262" lengthAdjust="spacingAndGlyphs">THE URBAN PLATE</text>'+
+  '<path d="M120 142h120l-8 16H128z" fill="url(#lg)"/><text x="180" y="154" text-anchor="middle" font-family="system-ui,sans-serif" font-size="8.5" letter-spacing="3.5" font-weight="600" fill="#1a1308">GOOD FOOD</text>'+
+  '<g stroke="url(#lg)" stroke-width="2.4" stroke-linecap="round"><path d="M106 70h46M208 70h46"/></g>'+
+  '<path d="M156 64c-13 0-17-14-8-20 2-9 12-13 20-8 4-6 20-6 24 0 8-5 18-1 20 8 9 6 5 20-8 20z" fill="url(#lg)" stroke="var(--bg,#14110f)" stroke-width="5" paint-order="stroke"/>'+
+  '<rect x="158" y="64" width="44" height="9" rx="2" fill="url(#lg)"/>'+
+  star(150,176,5)+star(165,181,6.5)+star(180,184,9)+star(195,181,6.5)+star(210,176,5)+'</svg>';
+}
+function brandV(mode){
+  if(mode==="staff")return '<div class="bh sm">'+logoSvg()+'<div class="wel" style="font-size:24px">WELCOME BACK</div><p class="bh-tag">Staff sign-in</p></div>';
+  return '<div class="bh">'+logoSvg()+'<div class="wel">WELCOME</div><p class="bh-tag">Good Food. Great Moments.</p><div class="feat"><span>Order from your table</span><span>Apple Pay · Google Pay · PayPal · Card</span><span>Earn rewards</span><span>Games while you wait</span></div></div>';
+}
+function pinV(){return brandV("staff")+'<div class="card ctr"><h2>Enter your PIN</h2><p class="mute">Enter your PIN. Each role only sees its own screen: waiter, kitchen or manager. Starting PINs are waiter 1111, kitchen 2222, manager 1234. The manager can change them under Restaurant info.</p><div class="stack"><input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="Staff PIN" onkeydown="if(event.key===\'Enter\')unlock()"><button class="p" onclick="unlock()">Sign in</button></div>'+(session.pinErr?'<div class="err">'+session.pinErr+'</div>':'')+'</div>'}
+var LABEL={customer:"Customer",waiter:"Waiter",kitchen:"Kitchen",manager:"Manager"};
+function go(v){view=v;location.hash=v;render()}
+function money(n){return "Rs "+n.toLocaleString()}
+function fmt(items){return items.map(function(i){return i.qty+"× "+i.name}).join(", ")}
+function tableOpts(){return Object.keys(S.tables).map(function(t){return '<option value="'+t+'"'+(+t===session.scan?' selected':'')+'>Table '+t+'</option>'}).join("")}
+function bill(t,c){var r={total:0,open:0,pending:0};S.orders.forEach(function(o){if(o.table!=t||o.code!==c)return;if(o.status==="accepted"||o.status==="preparing"||o.status==="ready")r.open++;if(o.status==="accepted"||o.status==="preparing"||o.status==="ready"||o.status==="served")r.total+=o.items.reduce(function(s,i){return s+i.qty*i.price},0)});return r}
+
+var ICONS={"utensils": "<path d=\"M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2\"/><path d=\"M7 2v20\"/><path d=\"M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7\"/>", "bell": "<path d=\"M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9\"/><path d=\"M10.3 21a1.94 1.94 0 0 0 3.4 0\"/>", "bellOff": "<path d=\"M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5\"/><path d=\"M17 17H3s3-2 3-9a4.7 4.7 0 0 1 .3-1.7\"/><path d=\"M10.3 21a1.94 1.94 0 0 0 3.4 0\"/><path d=\"m2 2 20 20\"/>", "gift": "<rect x=\"3\" y=\"8\" width=\"18\" height=\"4\" rx=\"1\"/><path d=\"M12 8v13\"/><path d=\"M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7\"/><path d=\"M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5\"/>", "star": "<path d=\"m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3-6.2 3.3L7 14.2 2 9.3l6.9-1z\"/>", "check": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m9 12 2 2 4-4\"/>", "x": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m15 9-6 6M9 9l6 6\"/>", "clock": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6l4 2\"/>", "flame": "<path d=\"M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4.1 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z\"/>", "table": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"4\" rx=\"1\"/><path d=\"M6 8v12M18 8v12\"/>", "sparkle": "<path d=\"m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z\"/><path d=\"M19 17v4M17 19h4\"/>", "card": "<rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"2\"/><path d=\"M2 10h20\"/>", "cash": "<rect x=\"2\" y=\"6\" width=\"20\" height=\"12\" rx=\"2\"/><circle cx=\"12\" cy=\"12\" r=\"2\"/><path d=\"M6 12h.01M18 12h.01\"/>", "settings": "<path d=\"M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0\"/><circle cx=\"16\" cy=\"6\" r=\"2\"/><circle cx=\"10\" cy=\"12\" r=\"2\"/><circle cx=\"18\" cy=\"18\" r=\"2\"/>", "note": "<path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><path d=\"M14 2v6h6M8 13h8M8 17h6\"/>", "pin": "<path d=\"M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z\"/><circle cx=\"12\" cy=\"10\" r=\"3\"/>", "receipt": "<path d=\"M4 2v20l3-2 2 2 3-2 3 2 2-2 3 2V2l-3 2-2-2-3 2-3-2-2 2z\"/><path d=\"M8 8h8M8 12h8\"/>", "zap": "<path d=\"M13 2 3 14h9l-1 8 10-12h-9z\"/>", "plus": "<path d=\"M12 5v14M5 12h14\"/>", "minus": "<path d=\"M5 12h14\"/>", "chart": "<path d=\"M3 3v18h18\"/><path d=\"M8 17v-5M13 17V8M18 17v-9\"/>", "logout": "<path d=\"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4\"/><path d=\"m16 17 5-5-5-5M21 12H9\"/>", "search": "<circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m21 21-4.3-4.3\"/>", "grid": "<rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/>", "trophy": "<path d=\"M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z\"/><path d=\"M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3\"/>", "equal": "<path d=\"M5 9h14M5 15h14\"/>", "meh": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M8 15h8M9 9h.01M15 9h.01\"/>", "home": "<path d=\"M3 11 12 3l9 8\"/><path d=\"M5 10v10h14V10\"/>", "game": "<rect x=\"2\" y=\"7\" width=\"20\" height=\"11\" rx=\"4\"/><path d=\"M7 12h4M9 10v4M15 12h.01M18 13h.01\"/>", "info": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 16v-4M12 8h.01\"/>", "wifi": "<path d=\"M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M2 9a15 15 0 0 1 20 0\"/><path d=\"M12 20h.01\"/>", "phone": "<path d=\"M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z\"/>", "printer": "<path d=\"M6 9V3h12v6\"/><rect x=\"3\" y=\"9\" width=\"18\" height=\"9\" rx=\"2\"/><rect x=\"7\" y=\"15\" width=\"10\" height=\"6\"/>", "flask": "<path d=\"M9 3h6M10 3v6L4 20a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1l-6-11V3\"/>", "trash": "<path d=\"M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14\"/>", "mail": "<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2\"/><path d=\"m3 7 9 6 9-6\"/>", "chef": "<path d=\"M6 13.9A4 4 0 0 1 7 6a5 5 0 0 1 10 0 4 4 0 0 1 1 7.9V20H6z\"/><path d=\"M6 17h12\"/>", "dollar": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M15 9.5c-.5-1-1.600-1.500-3-1.500-1.700 0-3 .9-3 2.200 0 3 6 1.500 6 4.600 0 1.300-1.300 2.200-3 2.200-1.400 0-2.500-.5-3-1.500M12 6v2M12 16v2\"/>", "heart": "<path d=\"M20.8 4.6a5.5 5.5 0 0 0-7.800 0L12 5.700l-1-1.100a5.500 5.500 0 0 0-7.800 7.800L12 21l8.800-8.600a5.500 5.500 0 0 0 0-7.800z\"/>", "droplet": "<path d=\"M12 3s6 6.500 6 11a6 6 0 0 1-12 0c0-4.500 6-11 6-11z\"/>", "bag": "<path d=\"M6 7h12l1 13H5z\"/><path d=\"M9 7a3 3 0 0 1 6 0\"/>", "ban": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m5 5 14 14\"/>", "cup": "<path d=\"M5 8h14l-1.500 13h-11z\"/><path d=\"M3 8h18M9 3l1 5\"/>", "cake": "<path d=\"M4 20h16v-8H4z\"/><path d=\"M4 16c3 2 5-2 8 0s5-2 8 0M12 12V8M12 5v.01\"/>", "leaf": "<path d=\"M11 20A7 7 0 0 1 9.800 6.100C15.500 5 17 4.500 19 2c1 2 2 4.200 2 8 0 5.500-4.800 10-10 10z\"/><path d=\"M2 21c0-3 1.800-6 4-8\"/>", "arrow": "<path d=\"M5 12h14M13 6l6 6-6 6\"/>"},EMAP={"🍽": "utensils", "🍴": "utensils", "🥘": "utensils", "🍛": "utensils", "🍚": "utensils", "🦐": "utensils", "🫓": "utensils", "🍔": "utensils", "🔔": "bell", "🔕": "bellOff", "🎁": "gift", "🌶": "flame", "🔥": "flame", "🍕": "flame", "🌱": "leaf", "🌮": "leaf", "⭐": "star", "✅": "check", "❌": "x", "👨‍🍳": "chef", "⏳": "clock", "🕒": "clock", "🪑": "table", "🎉": "sparkle", "🆕": "sparkle", "💳": "card", "💵": "cash", "💰": "dollar", "⚙": "settings", "📝": "note", "📄": "note", "📍": "pin", "🧾": "receipt", "⚡": "zap", "➕": "plus", "➖": "minus", "📊": "chart", "🚪": "logout", "🔍": "search", "🧠": "grid", "🏆": "trophy", "🤝": "equal", "😅": "meh", "🏠": "home", "🎮": "game", "ℹ": "info", "📶": "wifi", "📞": "phone", "📱": "phone", "🖨": "printer", "🧪": "flask", "🗑": "trash", "📨": "mail", "🙏": "heart", "🍉": "heart", "🥤": "cup", "🍋": "cup", "🍵": "cup", "🍟": "cup", "🍮": "cake", "🍰": "cake", "🍩": "gift", "🍣": "droplet", "🧂": "droplet", "🧅": "ban", "🥡": "bag", "👋": ""};
+var EMO_RE=/[\u{1F300}-\u{1FAFF}]\uFE0F?(?:\u200D[\u{1F300}-\u{1FAFF}]\uFE0F?)*|[\u2B50\u2705\u23F3\u2699\u26A1\u2795\u2796\u274C\u2139]\uFE0F?/gu;
+function ic(n){return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">'+(ICONS[n]||ICONS.utensils)+'</svg>'}
+function emoName(s){var k=s.replace(/\uFE0F/g,"");return k in EMAP?EMAP[k]:"utensils"}
+function iconize(root){
+  var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),L=[],n;
+  while(n=w.nextNode()){EMO_RE.lastIndex=0;if(EMO_RE.test(n.nodeValue))L.push(n)}
+  L.forEach(function(t){var p=t.parentNode;if(!p)return;var tg=p.tagName;
+    if(tg==="OPTION"||tg==="TEXTAREA"||tg==="SCRIPT"||tg==="STYLE"||tg==="TITLE"){t.nodeValue=t.nodeValue.replace(EMO_RE,"").trim();return}
+    var s=t.nodeValue,f=document.createDocumentFragment(),last=0,m;EMO_RE.lastIndex=0;
+    while(m=EMO_RE.exec(s)){if(m.index>last)f.appendChild(document.createTextNode(s.slice(last,m.index)));var nm=emoName(m[0]);if(nm){var sp=document.createElement("span");sp.innerHTML=ic(nm);f.appendChild(sp.firstChild)}last=m.index+m[0].length}
+    if(last<s.length)f.appendChild(document.createTextNode(s.slice(last)));
+    p.replaceChild(f,t)});
+  document.querySelectorAll("[placeholder]").forEach(function(e){e.placeholder=e.placeholder.replace(EMO_RE,"").trim()});
+}
+function syncMenu(){MENU.length=BASEN;(S.dishes||[]).forEach(function(d){MENU.push(d)})}
+function render(){syncMenu();
+  var keep={},ae=document.activeElement,aid=ae&&ae.id,as=ae&&ae.selectionStart;
+  document.querySelectorAll('#app [id]').forEach(function(e){if(e.value!==undefined&&e.tagName!=='BUTTON')keep[e.id]=e.value});
+  var pc=S.reqs.filter(function(r){return r.status==="pending"}).length+S.calls.filter(function(c){return c.status==="open"}).length;
+  if(role&&!qrMode&&ACCESS[role].indexOf(view)<0){view=ACCESS[role][ACCESS[role].length-1]==="manager"&&role==="manager"?"manager":ACCESS[role][0];location.hash=view}
+  var staffView=view!=="customer";document.body.className=(view==="customer"&&!qrMode)?"cx":(staffView?"cx mg":"");
+  document.getElementById("nav").innerHTML=VIEWS.filter(function(v){return role?ACCESS[role].indexOf(v)>-1:v==="customer"}).map(function(v){
+    var n=(v==="waiter"&&pc)?" ("+pc+")":"";
+    return '<button class="'+(v===view?"on":"")+'" onclick="go(\''+v+'\')">'+LABEL[v]+n+'</button>'}).join(" ")+((role||(view==="customer"&&session.table))?' <button onclick="toggleSnd()" aria-label="Toggle notification sound">Sound: '+(SND?"On":"Off")+'</button>':'')+(role?' <button onclick="lock()">Sign out</button>':(staffView?'':' <button onclick="go(\'waiter\')">Staff</button>'));
+  if(qrMode)document.getElementById("nav").innerHTML="";
+  document.getElementById("app").innerHTML=(staffView&&!role)?pinV():view==="waiter"?waiterV():view==="kitchen"?kitchenV():view==="manager"?managerV():customerV();
+  for(var k in keep){var e=document.getElementById(k);if(e&&e.value!==undefined&&e.value!==keep[k]&&k!=='pin'||(e&&k==='pin'))e.value=keep[k]}
+  if(aid){var f=document.getElementById(aid);if(f){f.focus();try{if(as!=null)f.setSelectionRange(as,as)}catch(x){}}}
+  iconize(document.body);checkAlerts();
+}
+
+/* ---------- Customer ---------- */
+function customerV(){
+  if(session.user&&!S.users[session.user])session.user=null;
+  // auto-join when the waiter accepted my table request
+  if(session.reqId){
+    var r=S.reqs.filter(function(x){return x.id===session.reqId})[0];
+    if(r&&r.status==="accepted"&&S.tables[r.table].code===r.code){session.table={id:r.table,code:r.code};session.reqId=null;session.err=""}
+  }
+  if(session.table&&S.tables[session.table.id].waiter)session.wname=S.tables[session.table.id].waiter;
+  // session ended (paid) -> code changed or cleared
+  if(session.table&&S.tables[session.table.id].code!==session.table.code){
+    session.rateFor={w:session.wname,code:session.table.code,table:session.table.id};session.table=null;session.cart={};session.err="Payment received – thank you! This table session has ended. Scan the tag to start a new one.";
+  }
+  if(session.table)return session.tab==="games"?gamesV():session.tab==="pay"?payV():session.tab==="info"?infoV():session.tab==="offers"?offersV():menuV();
+  if(session.reqId){
+    var q=S.reqs.filter(function(x){return x.id===session.reqId})[0];
+    if(q&&q.status==="rejected"){session.reqId=null;session.err="The waiter could not open this table. Please ask the staff."}
+    else return '<div class="card"><h2>Table '+q.table+' requested</h2><p>⏳ Waiting for the waiter to confirm you are seated…</p><p class="mute">Once accepted, the table gets a one-time code and your menu opens automatically.</p><button class="g" onclick="cancelReq()">Cancel</button></div>';
+  }
+  return brandV("guest")+rateAfterV()+resumeV()+accountV()+'<div class="card ctr"><h2>Open your table</h2>'+(session.scan?'<p>📍 You scanned the tag on <b>Table '+session.scan+'</b>. Request to open it below.</p>':'<p class="mute">The QR/NFC tag on the table only holds the table number (no code). Pick your table to simulate scanning it.</p>')+''+
+    '<div class="stack"><select id="tb">'+tableOpts()+'</select><button class="p" onclick="requestTable()">Request to open this table</button></div>'+
+    '<hr><b>Already seated with friends?</b><p class="mute">Ask them for the table code and join the same bill.</p>'+
+    '<div class="stack"><input id="cd" inputmode="numeric" maxlength="4" placeholder="4-digit table code"><button class="g" onclick="joinTable()">Join table</button></div>'+
+    (session.err?'<div class="err">'+session.err+'</div>':'')+'</div>';
+}
+var CEMO={All:"🍽️",Mains:"🍛",Sides:"🫓",Drinks:"🥤",Desserts:"🍮"},OPTS=["🌶️ Extra spicy","🧅 No onions","🧂 Extra sauce","🥡 Pack to go"];
+function setQ(v){session.q=v;render()}
+function openSheet(id){session.sheet=id;render()}
+function closeSheet(){session.sheet=null;render()}
+function toggleMod(id,o){var m=session.mods=session.mods||{};m[id]=m[id]||{};m[id][o]=!m[id][o];render()}
+function fullNote(){var p=[];MENU.forEach(function(m){var o=(session.mods||{})[m.id];if(o){var l=OPTS.filter(function(x){return o[x]});if(l.length&&session.cart[m.id])p.push(m.name+": "+l.join(", "))}});if((session.note||"").trim())p.push(session.note.trim());return p.join(" · ")}
+function popCard(m){return '<div class="card pop"><div onclick="openSheet('+m.id+')" style="cursor:pointer">'+dishPic(m,96)+'</div><div style="font-size:14px;font-weight:600;margin-top:8px;min-height:36px">'+m.name+'</div><div class="row"><b style="font-size:14px">'+money(m.price)+'</b><button class="plus" aria-label="Add '+m.name+'" onclick="chg('+m.id+',1)">+</button></div></div>'}
+function sheetV(){
+  var m=MENU.filter(function(x){return x.id===session.sheet})[0];if(!m)return"";
+  var q=session.cart[m.id]||0,st=dishStat(m.id),mo=(session.mods||{})[m.id]||{};
+  return '<div class="ov" onclick="closeSheet()"><div class="sheet" onclick="event.stopPropagation()">'+dishPic(m,200)+
+   '<div class="row" style="margin-top:10px"><h2 style="font-size:22px;margin:0">'+m.name+'</h2><b style="color:var(--accent);font-size:20px">'+money(m.price)+'</b></div>'+
+   '<div style="color:#f59e0b;font-size:14px">'+(st.n?'★ '+st.avg.toFixed(1)+' <span class="mute">('+st.n+' reviews)</span>':'<span class="mute">No reviews yet</span>')+'</div>'+
+   '<p class="mute" style="font-size:14px">'+m.desc+'</p>'+(m.tags.map(function(t){return '<span class="dtag">'+t+'</span>'}).join(""))+
+   '<h2 style="margin-top:14px">Customize</h2>'+OPTS.map(function(o){return '<div class="sw'+(mo[o]?' on':'')+'" onclick="toggleMod('+m.id+',\''+o+'\')"><span>'+o+'</span><i></i></div>'}).join("")+
+   '<div class="cta"><div class="qty"><button onclick="chg('+m.id+',-1)">−</button><b>'+q+'</b><button onclick="chg('+m.id+',1)">+</button></div><button class="pill" onclick="'+(q?'closeSheet()':'chg('+m.id+',1)')+'">'+(q?'Done':'Add to cart')+' · '+money(Math.max(q,1)*m.price)+'</button></div></div></div>';
+}
+function menuV(){
+  var tid=session.table.id,code=session.table.code,cat=session.cat||"All",qs=(session.q||"").toLowerCase();
+  var items=MENU.filter(function(m){return session.cart[m.id]}).map(function(m){return {id:m.id,name:m.name,price:m.price,qty:session.cart[m.id]}});
+  var total=items.reduce(function(s,i){return s+i.qty*i.price},0);
+  var list=MENU.filter(function(m){return (cat==="All"||m.cat===cat)&&(!qs||(m.name+" "+m.desc).toLowerCase().indexOf(qs)>-1)});
+  var h=tabsV()+'<div class="hi">Hi, '+esc(session.name)+' 👋 · Table '+tid+' · code <b style="letter-spacing:2px;color:var(--text)">'+code+'</b> <button class="g" style="padding:2px 8px;font-size:12px;border-radius:99px" onclick="leave()">Leave</button></div><div class="hero">Good Food<br>Good <b>Mood!</b></div>'+
+   '<div class="search"><span>🔍</span><input id="sq" type="search" placeholder="Search your favorite food" value="'+esc(session.q||"")+'" oninput="setQ(this.value)"></div>'+
+   '<div class="cats">'+CATS.map(function(c){return '<button class="cat'+(c===cat?' on':'')+'" onclick="setCat(\''+c+'\')"><span>'+CEMO[c]+'</span>'+c+'</button>'}).join("")+'</div>';
+  if(cat==="All"&&!qs){
+    h+='<div class="promo"><div><small class="mute">🔥 Limited time offer</small><b>Check today\'s <em>offers</em></b><button class="pill" onclick="tab(\'offers\')">See offers</button></div><div class="big">🍔</div></div>';
+    h+='<div class="sec"><h2>Popular Now</h2></div><div class="hs">'+MENU.filter(function(m){return m.tags.join().indexOf("Popular")>-1}).map(popCard).join("")+'</div>';
+  }
+  h+='<div class="sec"><h2>'+(cat==="All"?"Full menu":cat)+'</h2><span class="mute">'+list.length+' items</span></div>';
+  h+=list.length?'<div class="grid" style="align-items:start">'+list.map(dishCard).join("")+'</div>':'<div class="card mute">Nothing matches your search.</div>';
+  h+='<div class="card sticky"><div class="row"><span class="bar"><b>Your selection</b>'+(items.length?'<span class="cnt">'+items.reduce(function(s,i){return s+i.qty},0)+'</span>':'')+'</span><b>'+money(total)+'</b></div><div class="mute">'+(items.length?fmt(items):"Nothing selected yet")+'</div>'+
+   '<textarea id="onote" rows="1" maxlength="120" placeholder="Special requests? e.g. no onions, extra spicy" oninput="session.note=this.value" style="margin-top:8px">'+esc(session.note||"")+'</textarea><div style="margin-top:10px"><button class="pill" style="width:100%;margin:0;padding:13px;'+(items.length?'':'opacity:.45')+'" '+(items.length?'':'disabled')+' onclick="place()">Send to kitchen</button></div></div>';
+  var mine=S.orders.filter(function(o){return o.table===tid&&o.code===code});
+  if(mine.length)h+='<div class="sec"><h2>Table orders</h2><b>Bill '+money(bill(tid,code).total)+'</b></div>'+mine.map(function(o){return '<div class="card"><div class="row"><span>'+fmt(o.items)+noteOf(o)+'</span><span class="mute">#'+o.id+'</span></div>'+trackerV(o)+'</div>'}).join("");
+  return h+sheetV();
+}
+function chg(id,d){session.cart[id]=Math.max(0,(session.cart[id]||0)+d);render()}
+function requestTable(){
+  S=load();var t=+document.getElementById("tb").value;
+  if(S.tables[t].code){session.err="Table "+t+" is already open. Ask the people at your table for their code.";render();return}
+  var dup=S.reqs.filter(function(r){return r.table===t&&r.status==="pending"})[0];
+  var id=dup?dup.id:S.seq++;
+  if(!dup){S.reqs.push({id:id,table:t,status:"pending",time:Date.now(),user:session.user||null});note("🪑 Table "+t+" requested to sit"+(session.user&&S.users[session.user]?" – loyal customer "+S.users[session.user].name:""))}
+  save();session.reqId=id;session.err="";render();
+}
+function cancelReq(){S=load();S.reqs=S.reqs.filter(function(r){return r.id!==session.reqId});save();session.reqId=null;render()}
+function joinTable(){
+  S=load();var t=+document.getElementById("tb").value,c=document.getElementById("cd").value.trim();
+  if(Date.now()<(session.lockUntil||0)){session.err="Too many wrong codes. Wait "+Math.ceil((session.lockUntil-Date.now())/1000)+" seconds and try again.";render();return}
+  if(S.tables[t].code&&S.tables[t].code===c){session.table={id:t,code:c};session.err="";session.tries=0;tagUser(t);save()}
+  else{session.tries=(session.tries||0)+1;if(session.tries>=5){session.lockUntil=Date.now()+30000;session.tries=0}session.err="Wrong code, or this table is not open yet."}
+  render();
+}
+function leave(){session.last={id:session.table.id,code:session.table.code};session.table=null;session.cart={};session.err="";render()}
+function place(){
+  S=load();session.note=fullNote();var t=S.tables[session.table.id];
+  if(t.code!==session.table.code){session.table=null;session.err="This table session has ended.";render();return}
+  var items=MENU.filter(function(m){return session.cart[m.id]}).map(function(m){return {id:m.id,name:m.name,price:m.price,qty:session.cart[m.id]}});
+  if(!items.length)return;
+  S.orders.push({id:S.seq++,table:session.table.id,code:session.table.code,items:items,status:"accepted",time:Date.now(),user:session.user||null,note:(session.note||"").trim()});tagUser(session.table.id);note("🧾 New order – Table "+session.table.id+": "+fmt(items)+((session.note||"").trim()?" (📝 "+session.note.trim()+")":""));
+  save();session.cart={};session.note="";session.mods={};render();toast("✅ Order sent to kitchen");
+}
+
+/* ---------- Games ---------- */
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function tab(t){session.tab=t;session.game=null;render()}
+function openG(g){session.game=g;if(g==="memory")memStart();if(g==="tap")session.tp={state:"idle",n:0};render()}
+function gcard(id,t,d){return '<div class="card"><b>'+t+'</b><div class="mute" style="margin:4px 0 10px">'+d+'</div><button class="p" onclick="openG(\''+id+'\')">Play</button></div>'}
+function gamesV(){
+  var g=session.game,h=tabsV(),back='<p><button class="g" onclick="openG(null)">← All games</button></p>';
+  if(g==="memory")return h+back+memV();
+  if(g==="tap")return h+back+tapV();
+  if(g==="ttt")return h+back+tttV();
+  h+='<div class="card"><b>Your nickname</b><div class="stack" style="margin-top:8px"><input value="'+esc(session.name)+'" maxlength="12" onchange="session.name=this.value.trim()||session.name"></div></div>';
+  h+='<h2>Play alone</h2><div class="grid">'+gcard("memory","🧠 Memory Match","Find all the pairs in the fewest moves.")+gcard("tap","⚡ Tap Challenge","Tap as many times as you can in 10 seconds.")+'</div>';
+  h+='<h2>Play with others</h2><div class="grid">'+gcard("ttt","⭕ Tic-Tac-Toe","Challenge a friend at your table, or a guest at another table.")+'</div>';
+  return h+leaderboard();
+}
+
+/* Memory */
+function memStart(){var e=["🍕","🍔","🍟","🌮","🍣","🍰","🍩","🍉"];var c=e.concat(e).map(function(x){return {e:x,k:Math.random()}}).sort(function(a,b){return a.k-b.k});session.mem={cards:c,open:[],done:{},moves:0,lock:false}}
+function memV(){
+  var m=session.mem,won=Object.keys(m.done).length===16;
+  var h='<div class="card"><div class="row"><b>Memory Match</b><span>Moves: '+m.moves+'</span></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:340px">';
+  m.cards.forEach(function(c,i){var show=m.done[i]||m.open.indexOf(i)>-1;h+='<button class="g" style="height:64px;font-size:28px" '+(show?'disabled':'')+' onclick="flip('+i+')">'+(show?c.e:"?")+'</button>'});
+  h+='</div>';
+  if(won)h+='<p><b>🎉 Done in '+m.moves+' moves!</b></p><button class="p" onclick="memStart();render()">Play again</button>';
+  return h+'</div>';
+}
+function flip(i){
+  var m=session.mem;if(m.lock||m.open.length>1||m.done[i]||m.open[0]===i)return;
+  m.open.push(i);
+  if(m.open.length===2){
+    m.moves++;var a=m.cards[m.open[0]],b=m.cards[m.open[1]];
+    if(a.e===b.e){m.done[m.open[0]]=1;m.done[m.open[1]]=1;m.open=[];if(Object.keys(m.done).length===16)addScore("memory",m.moves)}
+    else{m.lock=true;setTimeout(function(){m.open=[];m.lock=false;render()},800)}
+  }
+  render();
+}
+
+/* Tap challenge */
+function tapV(){
+  var t=session.tp,h='<div class="card"><b>Tap Challenge</b>';
+  if(t.state==="idle")h+='<p class="mute">Press Start, then tap the big button as fast as you can for 10 seconds.</p><button class="p" onclick="tapStart()">Start</button>';
+  else if(t.state==="run"){var left=Math.max(0,Math.ceil((t.end-Date.now())/1000));h+='<p>Time left: <b>'+left+'s</b> · Taps: <b>'+t.n+'</b></p><button class="p" style="width:100%;height:140px;font-size:28px" onclick="tapHit()">TAP!</button>'}
+  else h+='<p><b>⚡ '+t.n+' taps in 10 seconds!</b></p><button class="p" onclick="tapStart()">Try again</button>';
+  return h+'</div>';
+}
+function tapStart(){session.tp={state:"run",n:0,end:Date.now()+10000};tapTick()}
+function tapTick(){var t=session.tp;if(session.game!=="tap"||!t||t.state!=="run")return;if(Date.now()>=t.end){t.state="done";addScore("tap",t.n);render();return}render();setTimeout(tapTick,250)}
+function tapHit(){var t=session.tp;if(t.state==="run"&&Date.now()<t.end){t.n++;render()}}
+
+/* Leaderboard (shared by all customers) */
+function addScore(kind,val){
+  S=load();S.scores[kind].push({name:session.name,table:session.table?session.table.id:0,v:val});
+  S.scores[kind].sort(function(a,b){return kind==="memory"?a.v-b.v:b.v-a.v});
+  S.scores[kind]=S.scores[kind].slice(0,5);save();
+}
+function leaderboard(){
+  function box(t,k,u){var l=S.scores[k];return '<div class="card"><b>'+t+'</b>'+(l.length?l.map(function(x,i){return '<div class="row"><span>'+(i+1)+'. '+esc(x.name)+' <span class="mute">(Table '+x.table+')</span></span><b>'+x.v+' '+u+'</b></div>'}).join(""):'<div class="mute">No scores yet – be the first!</div>')+'</div>'}
+  return '<h2>🏆 Restaurant leaderboard</h2><div class="grid">'+box("Memory (fewest moves)","memory","moves")+box("Tap Challenge","tap","taps")+'</div>';
+}
+
+/* Tic-Tac-Toe: table or cross-table */
+function tttV(){
+  var tb=session.table,g=session.gid?S.games.filter(function(x){return x.id===session.gid})[0]:null;
+  if(g)return tttGame(g);
+  session.gid=null;
+  var open=S.games.filter(function(x){return x.status==="wait"&&x.hostId!==session.pid&&Date.now()-x.time<600000&&(x.scope==="all"||(x.table===tb.id&&x.code===tb.code))});
+  var h='<div class="card"><b>Tic-Tac-Toe</b><p class="mute">Start a game and wait for an opponent, or join one below.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="p" onclick="newG(\'table\')">Play with my table</button><button class="g" onclick="newG(\'all\')">Play with another table</button></div></div>';
+  h+='<h2>Open games you can join</h2>';
+  h+=open.length?open.map(function(x){return '<div class="card"><div class="row"><span><b>'+esc(x.host)+'</b> · '+(x.scope==="all"?"Table "+x.table+" (open to all tables)":"your table")+'</span><button class="p" onclick="joinG('+x.id+')">Join</button></div></div>'}).join(""):'<p class="mute">No open games right now.</p>';
+  return h;
+}
+function getG(id){return S.games.filter(function(x){return x.id===id})[0]}
+function newG(scope){S=load();var tb=session.table,id=S.seq++;S.games.push({id:id,scope:scope,table:tb.id,code:tb.code,host:session.name,hostId:session.pid,guest:null,guestId:null,board:["","","","","","","","",""],turn:"X",winner:null,status:"wait",time:Date.now()});save();session.gid=id;render()}
+function joinG(id){S=load();var g=getG(id);if(!g||g.guest)return;g.guest=session.name;g.guestId=session.pid;g.status="play";save();session.gid=id;render()}
+function endG(id){S=load();S.games=S.games.filter(function(x){return x.id!==id});save();session.gid=null;render()}
+function rematch(id){S=load();var g=getG(id);if(!g)return;g.board=["","","","","","","","",""];g.winner=null;g.turn="X";save();render()}
+function mv(id,i){
+  S=load();var g=getG(id);if(!g||g.winner||g.board[i])return;
+  var me=g.hostId===session.pid?"X":"O";if(g.turn!==me)return;
+  g.board[i]=me;
+  [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].forEach(function(l){var b=g.board;if(b[l[0]]&&b[l[0]]===b[l[1]]&&b[l[1]]===b[l[2]])g.winner=b[l[0]]});
+  if(!g.winner&&g.board.every(function(c){return c}))g.winner="draw";
+  g.turn=me==="X"?"O":"X";save();render();
+}
+function tttGame(g){
+  var me=g.hostId===session.pid?"X":"O";
+  var h='<div class="card"><div class="row"><b>vs '+esc(me==="X"?(g.guest||"…"):g.host)+'</b><span class="mute">You are '+me+'</span></div>';
+  if(g.status==="wait")return h+'<p>⏳ Waiting for an opponent to join…</p><button class="g" onclick="endG('+g.id+')">Cancel</button></div>';
+  var msg=g.winner?(g.winner==="draw"?"🤝 It’s a draw!":(g.winner===me?"🎉 You won!":"😅 You lost")):(g.turn===me?"Your turn":"Opponent’s turn…");
+  h+='<p><b>'+msg+'</b></p><div style="display:grid;grid-template-columns:repeat(3,80px);gap:6px">';
+  g.board.forEach(function(c,i){h+='<button class="g" style="height:80px;font-size:34px" '+((c||g.winner||g.turn!==me)?'disabled':'')+' onclick="mv('+g.id+','+i+')">'+c+'</button>'});
+  h+='</div><p>';
+  if(g.winner)h+='<button class="p" onclick="rematch('+g.id+')">Rematch</button> ';
+  return h+'<button class="g" onclick="endG('+g.id+')">Leave game</button></p></div>';
+}
+
+/* ---------- Pay & call waiter ---------- */
+function tabsV(){
+  var w=session.table?S.calls.filter(function(c){return c.table===session.table.id&&c.type==="waiter"})[0]:null;
+  var n=function(id,i,l){return '<button class="'+(session.tab===id?"on":"")+'" onclick="tab(\''+id+'\')"><span>'+i+'</span>'+l+'</button>'};
+  return '<div style="display:flex;justify-content:flex-end;margin-bottom:6px">'+(w?'<span class="tag '+(w.status==="coming"?"ready":"pending")+'">'+(w.status==="coming"?"Waiter is on the way":"Waiter notified…")+'</span>':'<button class="g" style="border-radius:99px" onclick="addCall(\'waiter\')">🔔 Call waiter</button>')+'</div>'+
+  '<nav class="bnav">'+n("menu","🏠","Home")+n("offers","🎁","Offers")+n("games","🎮","Games")+n("pay","💳","Pay")+n("info","ℹ️","Info")+'</nav>';
+}
+function addCall(type,amount){
+  S=load();var t=session.table.id;
+  if(S.tables[t].code!==session.table.code)return render();
+  if(S.calls.filter(function(c){return c.table===t&&c.type===type})[0])return render();
+  S.calls.push({id:S.seq++,table:t,type:type,amount:amount||0,status:"open",time:Date.now(),user:session.user||null,offer:(type==="cash"&&activeOffer(amount).off)?activeOffer(amount).off.id:null});note(type==="cash"?"💵 Table "+t+" wants to pay cash "+money(amount):"🔔 Table "+t+" called the waiter");save();render();
+}
+function cancelCall(id){S=load();S.calls=S.calls.filter(function(c){return c.id!==id});save();render()}
+function payV(){
+  var t=session.table,b=bill(t.id,t.code),f=session.cf=session.cf||{};
+  var cash=S.calls.filter(function(c){return c.table===t.id&&c.type==="cash"})[0];
+  var ords=S.orders.filter(function(o){return o.table===t.id&&o.code===t.code&&(o.status==="accepted"||o.status==="preparing"||o.status==="ready"||o.status==="served")});
+  var h=tabsV()+'<div class="card"><div class="row"><b>Table '+t.id+' bill</b><b>'+money(b.total)+'</b></div>'+ords.map(function(o){return '<div class="mute">'+fmt(o.items)+'</div>'}).join("");
+  if(!b.total)h+='<div class="mute">Nothing to pay yet. Order something first.</div>';
+  h+='</div>';
+  if(cash)return h+'<div class="card"><b>💵 Cash payment</b><p>'+(cash.status==="coming"?'The waiter is on the way to collect '+money(cash.amount)+'.':'We notified the waiter. Please stay at your table with '+money(cash.amount)+'.')+'</p><button class="g" onclick="cancelCall('+cash.id+')">Cancel cash request</button></div>';
+  var off=!b.total?'disabled':'';h+=loyaltyPayV(b.total);
+  h+='<div class="card"><b>Choose how to pay</b><p class="mute">Demo only: no real payment is processed. Please don’t enter a real card number.</p>';
+  if(session.wallet){var w=session.wallet,ap=w.m==="Apple Pay",pp=w.m==="PayPal",amt=b.total-activeOffer(b.total).disc;
+    h+='<div class="stack" style="text-align:center"><div style="font-size:15px;font-weight:600">'+(ap?' Apple Pay':pp?'PayPal':'G Pay')+'</div><div class="mute">The Urban Plate · Table '+t.id+'</div><div style="font-size:28px;font-weight:700">'+money(amt)+'</div>'+
+      (w.busy?'<div class="mute" role="status">⏳ Processing payment…</div>':'<button class="p" style="background:'+(ap?'#000':pp?'#ffc439':'#fff')+';color:'+(ap?'#fff':'#111')+';border:1px solid var(--line);font-weight:600" onclick="walletGo()">'+(ap?'Pay with  Pay':pp?'Pay with PayPal':'Pay with G Pay')+'</button><button class="g" onclick="session.wallet=null;render()">Cancel</button>')+'</div>';
+    if(session.err)h+='<div class="err">'+session.err+'</div>';return h+'</div>';
+  }
+  if(session.card){
+    h+='<div class="stack"><input placeholder="Card number" inputmode="numeric" maxlength="19" value="'+esc(f.n||"")+'" oninput="session.cf.n=this.value"><div style="display:flex;gap:8px"><input placeholder="MM/YY" maxlength="5" value="'+esc(f.e||"")+'" oninput="session.cf.e=this.value"><input placeholder="CVC" inputmode="numeric" maxlength="4" value="'+esc(f.c||"")+'" oninput="session.cf.c=this.value"></div>'+
+      '<button class="p" onclick="payNow(\'Card\')">Pay '+money(b.total-activeOffer(b.total).disc)+'</button><button class="g" onclick="session.card=false;session.err=\'\';render()">Back</button></div>';
+  }else{
+    h+='<div class="stack"><button class="p" '+off+' onclick="walletStart(\'Apple Pay\')"> Apple Pay</button><button class="p" '+off+' onclick="walletStart(\'Google Pay\')">G Pay</button><button class="p" '+off+' style="background:#ffc439;color:#111" onclick="walletStart(\'PayPal\')"><b style="color:#003087">Pay</b><b style="color:#009cde">Pal</b></button><button class="p" '+off+' onclick="session.card=true;render()">💳 Card</button><button class="g" '+off+' onclick="payNow(\'Cash\')">💵 Cash (waiter comes to you)</button></div>';
+  }
+  if(session.err)h+='<div class="err">'+session.err+'</div>';
+  return h+'</div>';
+}
+function walletStart(m){session.err="";session.wallet={m:m,busy:false};render()}
+function walletGo(){var w=session.wallet;if(!w||w.busy)return;w.busy=true;render();
+  setTimeout(function(){var m=w.m;session.wallet=null;payNow(m);toast("✅ Payment successful · "+m)},1300)}
+function payNow(m){
+  S=load();var t=session.table;
+  if(S.tables[t.id].code!==t.code)return render();
+  var b=bill(t.id,t.code);if(!b.total)return;
+  var _o=activeOffer(b.total);if(m==="Cash"){addCall("cash",b.total-_o.disc);return}
+  if(m==="Card"){var f=session.cf||{};
+    if(!/^\d{12,19}$/.test((f.n||"").replace(/\s/g,""))||!/^\d{2}\/\d{2}$/.test(f.e||"")||!/^\d{3,4}$/.test(f.c||"")){session.err="Please check the card details (number, MM/YY, CVC).";render();return}}
+  session.err="";session.card=false;session.cf={};session.tab="menu";
+  pay(t.id,m,session.user,_o.off?_o.off.id:null);session.offer=null;
+}
+
+/* Waiter: alerts */
+function alertsV(){
+  var h='<h2>🔔 Calls &amp; payments</h2>';
+  h+=S.calls.length?S.calls.map(function(c){var cash=c.type==="cash";
+    return '<div class="card"><div class="row"><b>Table '+c.table+(cash?' – wants to pay CASH ('+money(c.amount)+')':' – is calling the waiter')+'</b>'+(c.user?loyalTag(c.user):'')+'<span class="mute">'+new Date(c.time).toLocaleTimeString()+'</span></div><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
+      (c.status==="open"?'<button class="p" onclick="comingCall('+c.id+')">On my way</button>':'<span class="tag ready">On the way</span>')+
+      (cash?'<span class="mute">After collecting the cash, press “Paid → close table” below.</span>':'<button class="ok" onclick="doneCall('+c.id+')">Done</button>')+'</div></div>'}).join(""):'<p class="mute">No calls right now.</p>';
+  if(S.payments.length)h+='<div class="card"><b>Recent payments</b>'+S.payments.slice(0,5).map(function(p){return '<div class="row"><span>Table '+p.table+' · '+p.method+' <span class="mute">'+new Date(p.time).toLocaleTimeString()+'</span></span><b>'+money(p.amount)+'</b></div>'}).join("")+'</div>';
+  return h;
+}
+function comingCall(id){S=load();S.calls.forEach(function(c){if(c.id===id)c.status="coming"});save();render()}
+function doneCall(id){S=load();S.calls=S.calls.filter(function(c){return c.id!==id});save();render()}
+
+function resumeV(){
+  var l=session.last;if(!l||S.tables[l.id].code!==l.code)return "";
+  return '<div class="card"><h2>Back to Table '+l.id+'</h2><p class="mute">Went back by mistake? Resume your table, or enter your table code to return to the same menu and bill.</p><div class="stack"><button class="p" onclick="resume()">Resume Table '+l.id+'</button><input id="rc" inputmode="numeric" maxlength="4" placeholder="4-digit table code"><button class="g" onclick="resumeCode()">Return with code</button></div>'+(session.err2?'<div class="err">'+session.err2+'</div>':'')+'</div>';
+}
+function resume(){session.table=session.last;session.tab="menu";session.err="";session.err2="";render()}
+function resumeCode(){S=load();var l=session.last,c=document.getElementById("rc").value.trim();if(S.tables[l.id].code&&S.tables[l.id].code===c){resume()}else{session.err2="Wrong code. Please check it and try again.";render()}}
+
+/* ---------- Manager, info, ratings ---------- */
+var WAITERS=["Nimal","Kasun","Ayesha"];
+function defInfo(){return {name:"The Urban Plate",wifiName:"SpiceGarden-Guest",wifiPass:"welcome2026",hours:"Daily 11:00 – 23:00",address:"123 Galle Road, Colombo",phone:"+94 11 234 5678",about:"A family restaurant serving fresh Sri Lankan and Asian dishes since 2010. Thank you for dining with us!"}}
+function note(text){S.log.unshift({time:Date.now(),text:text});S.log=S.log.slice(0,60)}
+function stars(n){var s="";for(var i=0;i<n;i++)s+="★";return s}
+
+/* Customer: info tab + rating */
+function infoV(){
+  var i=S.info,t=session.table;
+  var h=tabsV()+'<div class="card"><h2>📶 Free Wi‑Fi</h2><div>Network: <b>'+esc(i.wifiName)+'</b></div><div style="margin-top:4px">Password: <span class="code" style="font-size:18px;letter-spacing:1px">'+esc(i.wifiPass)+'</span></div></div>';
+  h+='<div class="card"><h2>About '+esc(i.name)+'</h2><p>'+esc(i.about)+'</p><div class="mute">🕒 '+esc(i.hours)+'<br>📍 '+esc(i.address)+'<br>📞 '+esc(i.phone)+'</div></div>';
+  return h+rateV(S.tables[t.id].waiter,t.code);
+}
+function rateV(w,code){
+  if(!w)return "";
+  var done=(session.rated||{})[w+"|"+code];
+  if(done)return '<div class="card"><b>Thanks for rating '+esc(w)+'!</b> <span style="color:#f59e0b">'+stars(done)+'</span></div>';
+  var st=session.stars||0;
+  return '<div class="card"><h2>⭐ Rate your waiter, '+esc(w)+'</h2><div style="font-size:34px">'+[1,2,3,4,5].map(function(n){return '<span style="cursor:pointer;color:'+(n<=st?"#f59e0b":"var(--line)")+'" onclick="session.stars='+n+';render()">★</span>'}).join("")+'</div><p style="margin-top:8px"><button class="p" '+(st?'':'disabled')+' onclick="rate(\''+esc(w)+'\',\''+code+'\')">Submit rating</button></p></div>';
+}
+function rateAfterV(){var r=session.rateFor;return (r&&r.w)?rateV(r.w,r.code):""}
+function rate(w,code){
+  S=load();S.ratings.push({waiter:w,stars:session.stars,table:session.table?session.table.id:(session.rateFor?session.rateFor.table:0),time:Date.now()});
+  note("⭐ "+session.stars+"/5 rating for "+w);save();
+  session.rated=session.rated||{};session.rated[w+"|"+code]=session.stars;session.stars=0;render();
+}
+
+/* Waiter: who am I */
+function whoV(){return '<div class="card"><div class="row"><b>You are logged in as</b><select style="width:auto" onchange="session.waiter=this.value">'+WAITERS.map(function(w){return '<option'+(w===session.waiter?' selected':'')+'>'+w+'</option>'}).join("")+'</select></div><div class="mute">New tables you accept are assigned to you, and customers rate you.</div></div>'}
+
+/* Manager */
+function sumSince(ts){return S.paid.filter(function(p){return p.time>=ts}).reduce(function(s,p){return s+p.amount},0)}
+function addDishV(){
+  var f=function(id,l,x){return '<div><label class="mute">'+l+'</label>'+x+'</div>'};
+  var cu=S.dishes||[];
+  return '<div class="card"><b>➕ Add a new dish</b><div class="grid" style="margin-top:10px;align-items:end">'+
+   f("ad_name","Dish name",'<input id="ad_name" maxlength="40" placeholder="e.g. Egg Hoppers">')+
+   f("ad_price","Price",'<input id="ad_price" type="number" min="1" inputmode="numeric" placeholder="e.g. 750">')+
+   f("ad_cat","Category",'<select id="ad_cat"><option>Mains</option><option>Sides</option><option>Drinks</option><option>Desserts</option></select>')+
+   f("ad_tag","Tag",'<select id="ad_tag"><option value="">None</option><option value="🌶️ Spicy">Spicy</option><option value="🌱 Veg">Veg</option><option value="⭐ Popular">Popular</option></select>')+
+   '</div><div style="margin-top:10px"><label class="mute">Description</label><input id="ad_desc" maxlength="90" placeholder="Short description customers will see"></div>'+
+   '<div class="err" id="ad_err"></div><div style="margin-top:10px"><button class="pill" onclick="addDish()">Add dish</button> <span class="mute">Add a photo for it in the list below.</span></div>'+
+   (cu.length?'<hr><b>Your added dishes</b>'+tbl(["Dish","Category","Price",""],cu.map(function(d){return '<tr><td>'+(d.emoji||"🍽️")+' '+esc(d.name)+'</td><td>'+d.cat+'</td><td class="r">'+money(d.price)+'</td><td class="r"><button class="g" onclick="delDish('+d.id+')">Remove</button></td></tr>'}),""):'')+'</div>';
+}
+function addDish(){
+  S=load();var v=function(i){return document.getElementById(i).value.trim()},name=v("ad_name"),price=Math.round(+v("ad_price"));
+  var er=document.getElementById("ad_err");
+  if(!name||!(price>0)){er.textContent="Enter a dish name and a price above 0.";return}
+  S.dishes=S.dishes||[];syncMenu();
+  if(MENU.some(function(m){return m.name.toLowerCase()===name.toLowerCase()})){er.textContent="A dish with this name already exists.";return}
+  var id=MENU.reduce(function(m,x){return Math.max(m,x.id)},0)+1,tag=v("ad_tag");
+  S.dishes.push({id:id,name:name,price:price,cat:v("ad_cat"),desc:v("ad_desc")||"Freshly prepared",tags:tag?[tag]:[],pic:CATPIC[v("ad_cat")]});
+  note("🍽️ Dish added: "+name);save();["ad_name","ad_price","ad_desc"].forEach(function(i){document.getElementById(i).value=""});render();toast("✅ "+name+" added to the menu");
+}
+function delDish(id){S=load();var d=(S.dishes||[]).filter(function(x){return x.id===id})[0];if(!d||!confirm("Remove "+d.name+" from the menu?"))return;S.dishes=S.dishes.filter(function(x){return x.id!==id});save();render()}
+function mtab(t){session.mt=t;render()}
+function exportCsv(){var r=["date,table,method,orders,amount"].concat(S.paid.map(function(p){return [new Date(p.time).toISOString(),p.table,p.method,p.orders,p.amount].join(",")}));var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([r.join("\n")],{type:"text/csv"}));a.download="sales.csv";a.click()}
+function askClear(){session.mt="set";session.hc=1;render()}
+function tbl(head,rows,empty){return '<div class="tw"><table class="tbl"><tr>'+head.map(function(x){return '<th'+(/Amount|Total/.test(x)?' class="r"':'')+'>'+x+'</th>'}).join("")+'</tr>'+(rows.length?rows.join(""):'<tr><td colspan="'+head.length+'" class="mute">'+empty+'</td></tr>')+'</table></div>'}
+function mgrDash(){
+  var d=new Date();d.setHours(0,0,0,0);var w=new Date(d);w.setDate(d.getDate()-((d.getDay()+6)%7));var mo=new Date(d.getFullYear(),d.getMonth(),1);
+  var cnt={};MENU.forEach(function(x){cnt[x.name]=0});S.paid.forEach(function(p){for(var k in p.items)cnt[k]=(cnt[k]||0)+p.items[k]});
+  var rank=Object.keys(cnt).map(function(k){return {n:k,c:cnt[k]}}).sort(function(a,b){return b.c-a.c});
+  var rev=S.paid.reduce(function(s,p){return s+p.amount},0),ords=S.paid.reduce(function(s,p){return s+p.orders},0);
+  var live=S.orders.filter(function(o){return /^(accepted|preparing|ready)$/.test(o.status)}).length;
+  var open=0;for(var t in S.tables){if(S.tables[t].code)open+=bill(t,S.tables[t].code).total}
+  var i=S.info,t2=session.dt||"live";
+  var h='<div class="id"><div class="card"><div class="kv"><div><small>Restaurant</small><b>'+esc(i.name||"Restaurant")+'</b></div><div><small>Hours</small>'+esc(i.hours||"-")+'</div><div><small>Phone</small>'+esc(i.phone||"-")+'</div><div><small>Open tables</small><b>'+Object.keys(S.tables).filter(function(k){return S.tables[k].code}).length+' / '+Object.keys(S.tables).length+'</b></div></div></div><div class="card bal"><small class="mute">TODAY\'S EARNINGS</small><div class="v">'+money(sumSince(+d))+'</div></div></div>';
+  var left='<div class="card"><div class="tabs2">'+[["live","Live Orders"],["pay","Payments"],["top","Top Dishes"]].map(function(x){return '<button class="'+(t2===x[0]?'on':'')+'" onclick="session.dt=\''+x[0]+'\';render()">'+x[1]+'</button>'}).join("")+'</div>';
+  if(t2==="live"){var rows=S.orders.slice(-10).reverse().map(function(o){var a=o.items.reduce(function(s,x){return s+x.qty*x.price},0);return '<tr><td>'+new Date(o.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+'</td><td>Table '+o.table+'</td><td>'+esc(fmt(o.items))+noteOf(o)+'</td><td class="r">'+money(a)+'</td><td><span class="tag '+o.status+'">'+o.status+'</span></td></tr>'});left+=tbl(["Time","Table","Items","Amount","Status"],rows,"No orders yet.")}
+  if(t2==="pay"){var pr=S.paid.slice(-10).reverse().map(function(p){return '<tr><td>'+new Date(p.time).toLocaleDateString()+'</td><td>Table '+p.table+'</td><td>'+esc(p.method)+'</td><td>'+p.orders+'</td><td class="r">'+money(p.amount)+'</td></tr>'});left+=tbl(["Date","Table","Method","Orders","Amount"],pr,"No payments yet.")+'<div class="tot"><b>TOTAL PAYMENTS</b><b>'+money(rev)+'</b></div>'}
+  if(t2==="top"){left+=tbl(["#","Dish","Sold"],rank.map(function(x,k){return '<tr><td>'+(k+1)+'</td><td>'+x.n+'</td><td>'+x.c+'</td></tr>'}),"")}
+  left+='</div>';
+  var right='<div class="card ov2"><div class="hd">SALES OVERVIEW</div><div class="row"><span>Today</span><b>'+money(sumSince(+d))+'</b></div><div class="row"><span>This week</span><b>'+money(sumSince(+w))+'</b></div><div class="row"><span>This month</span><b>'+money(sumSince(+mo))+'</b></div><div class="row"><span>Total revenue</span><b style="color:var(--ok)">'+money(rev)+'</b></div><hr style="margin:8px 0"><div class="row"><span>Paid bills</span><b>'+S.paid.length+'</b></div><div class="row"><span>Orders served</span><b>'+ords+'</b></div><div class="row"><span>Avg. bill</span><b>'+money(S.paid.length?Math.round(rev/S.paid.length):0)+'</b></div><div class="row"><span>Active orders</span><b>'+live+'</b></div><div class="row"><span>Open balance due</span><b style="color:var(--accent)">'+money(open)+'</b></div></div>'+
+   '<div class="acts"><button class="act" onclick="window.print()"><span>🖨️</span>Print report</button><button class="act" onclick="exportCsv()"><span>📄</span>Export CSV</button><button class="act" onclick="sample()"><span>🧪</span>Load sample</button><button class="act" onclick="askClear()"><span>🗑️</span>Clear history</button></div>';
+  return h+'<div class="mcols"><div>'+left+'</div><div style="display:grid;gap:14px">'+right+'</div></div>';
+}
+function mgrReports(){
+  var by={};S.ratings.forEach(function(r){var b=by[r.waiter]=by[r.waiter]||{n:0,s:0};b.n++;b.s+=r.stars});var ws=Object.keys(by);
+  var h='<div class="card"><b>⭐ Waiter ratings</b>'+(ws.length?tbl(["Waiter","Rating","Count"],ws.map(function(k){var b=by[k],a=b.s/b.n;return '<tr><td>'+esc(k)+'</td><td><span style="color:#f59e0b">'+stars(Math.round(a))+'</span> '+a.toFixed(1)+'</td><td>'+b.n+'</td></tr>'}),""):'<div class="mute">No ratings yet.</div>')+'</div>';
+  return h+'<div class="card"><b>🔔 Notifications</b>'+tbl(["Event","Time"],S.log.slice(0,25).map(function(n){var t=new Date(n.time);return '<tr><td>'+esc(n.text)+'</td><td class="mute">'+t.toLocaleDateString()+' '+t.toLocaleTimeString()+'</td></tr>'}),"Nothing yet. Orders, calls, payments and ratings appear here.")+'</div>';
+}
+function mgrSettings(){
+  var i=S.info,f=function(id,l,v){return '<label class="mute">'+l+'</label><input id="inf_'+id+'" value="'+esc(v)+'">'};
+  return '<div class="card"><b>⚙️ Restaurant info &amp; Wi‑Fi (customers see this)</b><div class="stack" style="max-width:480px;margin-top:10px">'+f("wpin","Waiter PIN",pinOf("waiter"))+f("kpin","Kitchen PIN",pinOf("kitchen"))+f("mpin","Manager PIN",pinOf("manager"))+f("name","Restaurant name",i.name)+f("wifiName","Wi‑Fi name",i.wifiName)+f("wifiPass","Wi‑Fi password",i.wifiPass)+f("hours","Opening hours",i.hours)+f("address","Address",i.address)+f("phone","Phone",i.phone)+f("about","About us",i.about)+'<button class="pill" onclick="saveInfo()">Save</button></div></div>'+histCardV();
+}
+function managerV(){
+  var mt=session.mt||"dash",M=[["dash","📊","Dashboard"],["menu","🍴","Menu & Photos"],["offers","🎁","Offers & Loyalty"],["tables","🪑","Tables & QR"],["rep","⭐","Reports"],["set","⚙️","Settings"]];
+  var T={dash:"Dashboard",menu:"Menu & Photos",offers:"Offers & Loyalty",tables:"Tables & QR",rep:"Reports",set:"Settings"}[mt];
+  var body=mt==="menu"?addDishV()+dishMgrV():mt==="offers"?loyaltyMgrV():mt==="tables"?qrMgrV():mt==="rep"?mgrReports():mt==="set"?mgrSettings():mgrDash();
+  return '<div class="mshell"><aside class="msb"><div class="brand">🍽️ <em>'+esc((S.info&&S.info.name)||"Manager")+'</em></div>'+M.map(function(x){return '<button class="'+(x[0]===mt?'on':'')+'" onclick="mtab(\''+x[0]+'\')"><span>'+x[1]+'</span>'+x[2]+'</button>'}).join("")+'<hr><button onclick="lock()"><span>🚪</span>Sign out</button></aside>'+
+   '<section><div class="mtop"><div><div class="crumb">Manager › <b>'+T+'</b></div><h1>'+T+'</h1></div><div class="mute">'+new Date().toLocaleString([],{dateStyle:"medium",timeStyle:"short"})+' · Manager</div></div>'+body+'</section></div>';
+}
+function histCardV(){return '<div class="card"><b>🧹 Clear history</b><p class="mute">Deletes all orders, payments, sales totals, reviews, ratings, notifications, game scores and open table codes. Your menu, photos, restaurant info, PINs, offers and loyalty members are kept.</p>'+(session.hc?'<p><b>Are you sure? This cannot be undone.</b></p><div style="display:flex;gap:8px"><button class="no" onclick="clearHist()">Yes, clear everything</button><button class="g" onclick="session.hc=0;render()">Cancel</button></div>':'<button class="no" onclick="session.hc=1;render()">Clear history</button>')+'</div>'}
+function clearHist(){session.hc=0;S=load();
+  S.orders=[];S.reqs=[];S.games=[];S.calls=[];S.payments=[];S.reviews=[];S.log=[];S.paid=[];S.ratings=[];S.scores={memory:[],tap:[]};
+  Object.keys(S.tables).forEach(function(k){S.tables[k]={code:null}});
+  Object.keys(S.users).forEach(function(k){var u=S.users[k];u.visits=0;u.spent=0});
+  save();session.table=null;session.reqId=null;session.cart={};render();toast("History cleared")}
+function saveInfo(){S=load();["name","wifiName","wifiPass","hours","address","phone","about"].forEach(function(k){S.info[k]=document.getElementById("inf_"+k).value});var np={waiter:document.getElementById("inf_wpin").value.trim(),kitchen:document.getElementById("inf_kpin").value.trim(),manager:document.getElementById("inf_mpin").value.trim()};var ok=np.waiter&&np.kitchen&&np.manager&&np.waiter!==np.kitchen&&np.waiter!==np.manager&&np.kitchen!==np.manager;if(ok)S.info.pins=np;note("⚙️ Restaurant info updated"+(ok?"":" (PINs not changed: each role needs a different PIN)"));save();render()}
+
+function sample(){
+  S=load();var wts=[10,9,7,3,6,8,5,2],now=Date.now(),tot=wts.reduce(function(a,b){return a+b},0);
+  function pick(){var r=Math.random()*tot;for(var i=0;i<wts.length;i++){r-=wts[i];if(r<=0)return i}return 0}
+  for(var d=44;d>=0;d--){var n=3+Math.floor(Math.random()*5);
+    for(var k=0;k<n;k++){var items={},amt=0,ord=1+Math.floor(Math.random()*3);
+      for(var j=0;j<ord*2;j++){var mm=MENU[pick()],q=1+Math.floor(Math.random()*2);items[mm.name]=(items[mm.name]||0)+q;amt+=mm.price*q}
+      S.paid.push({time:now-d*864e5-k*36e5,table:1+Math.floor(Math.random()*6),method:["Apple Pay","Google Pay","PayPal","Card","Cash"][Math.floor(Math.random()*5)],amount:amt,orders:ord,items:items})}}
+  WAITERS.forEach(function(w){for(var i=0;i<8;i++)S.ratings.push({waiter:w,stars:3+Math.floor(Math.random()*3),table:1,time:now})});
+  MENU.forEach(function(m){for(var i=0;i<4;i++)S.reviews.push({item:m.id,stars:3+Math.floor(Math.random()*3),text:["Delicious!","Loved it","Great portion","Tasty","Will order again"][Math.floor(Math.random()*5)],name:"Guest",time:now})});note("📊 Sample history loaded");save();render();
+}
+
+/* ---------- Loyalty: login, points, offers ---------- */
+function defOffers(){return [
+  {id:"d1",title:"10% off your bill",cost:100,type:"percent",value:10,active:true},
+  {id:"d2",title:"Rs 300 off",cost:80,type:"amount",value:300,active:true},
+  {id:"d3",title:"Rs 600 off",cost:150,type:"amount",value:600,active:true},
+  {id:"d4",title:"20% off your bill",cost:220,type:"percent",value:20,active:true}]}
+try{session.user=localStorage.getItem("restaurant_login_v2")}catch(e){}
+function hpin(ph,p){var s=ph+":"+p,h=5381;for(var i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return String(h)}
+function setAuth(m){session.auth=m;session.authErr="";render()}
+function digits(id){return document.getElementById(id).value.replace(/\D/g,"")}
+function remember(ph){try{if(ph)localStorage.setItem("restaurant_login_v2",ph);else localStorage.removeItem("restaurant_login_v2")}catch(e){}}
+function login(){
+  S=load();var ph=digits("au_phone"),pin=document.getElementById("au_pin").value,u=S.users[ph];
+  if(u&&u.pin===hpin(ph,pin)){session.user=ph;session.authErr="";remember(ph);if(session.table){tagUser(session.table.id);save()}}else session.authErr="Wrong phone number or PIN.";
+  render();
+}
+function signup(){
+  S=load();var nm=document.getElementById("au_name").value.trim(),ph=digits("au_phone"),pin=document.getElementById("au_pin").value;
+  if(!nm||ph.length<9||!/^\d{4}$/.test(pin)){session.authErr="Enter your name, a valid phone number and a 4-digit PIN.";render();return}
+  if(S.users[ph]){session.authErr="This number already has an account. Please log in.";render();return}
+  S.users[ph]={name:nm,pin:hpin(ph,pin),points:50,visits:0,spent:0,joined:Date.now()};
+  note("🆕 New loyalty member: "+nm);save();session.user=ph;session.authErr="";remember(ph);if(session.table){tagUser(session.table.id);save()}render();
+}
+function logout(){session.user=null;session.offer=null;remember(null);render()}
+
+function accountV(){
+  var u=session.user&&S.users[session.user];
+  if(u)return '<div class="card"><div class="row"><b>👋 Hi '+esc(u.name)+'</b><button class="g" onclick="logout()">Log out</button></div><div style="font-size:26px;font-weight:700">⭐ '+u.points+' points</div><div class="mute">'+u.visits+' visits · '+money(u.spent)+' spent · '+(5-(u.visits%5))+' more visit(s) until your next +20 bonus</div></div>';
+  var su=session.auth==="signup";
+  return '<div class="card ctr"><h2>⭐ Regular customer?</h2><p class="mute">Log in to earn 1 point for every Rs 100 you spend. New members get 50 bonus points. Use points for discounts.</p><div class="stack">'+
+    (su?'<input id="au_name" placeholder="Your name" maxlength="20">':'')+
+    '<input id="au_phone" inputmode="tel" placeholder="Phone number" maxlength="15"><input id="au_pin" type="password" inputmode="numeric" maxlength="4" placeholder="4-digit PIN">'+
+    (su?'<button class="p" onclick="signup()">Create account</button><button class="g" onclick="setAuth(\'login\')">I already have an account</button>':'<button class="p" onclick="login()">Log in</button><button class="g" onclick="setAuth(\'signup\')">New here? Sign up</button>')+'</div>'+
+    (session.authErr?'<div class="err">'+session.authErr+'</div>':'')+'<p class="mute">Demo: accounts are stored in this browser only.</p></div>';
+}
+function offersV(){
+  var u=session.user&&S.users[session.user],list=S.offers.filter(function(o){return o.active});
+  var h=tabsV()+accountV()+'<h2>🎁 Offers</h2>';
+  h+=list.length?'<div class="grid">'+list.map(function(o){var st=u?(u.points>=o.cost?'<span class="tag ready">You can use this</span>':'<span class="tag pending">Need '+(o.cost-u.points)+' more points</span>'):'<span class="mute">Log in to use</span>';return '<div class="card"><b>'+esc(o.title)+'</b><div class="mute" style="margin:4px 0 8px">'+o.cost+' points</div>'+st+'</div>'}).join("")+'</div><p class="mute">Choose an offer on the 💳 Pay tab before you pay.</p>':'<p class="mute">No offers right now.</p>';
+  return h+'<div class="card"><b>How it works</b><div class="mute">Earn 1 point per Rs 100 you pay · +20 bonus points on every 5th visit · points are added when you pay while logged in.</div></div>';
+}
+function discountOf(off,total){return Math.min(total,off.type==="percent"?Math.round(total*off.value/100):off.value)}
+function activeOffer(total){
+  var u=session.user&&S.users[session.user],off=null;
+  if(u&&session.offer)off=S.offers.filter(function(o){return o.id===session.offer&&o.active&&u.points>=o.cost})[0]||null;
+  return {off:off,disc:off?discountOf(off,total):0};
+}
+function pickOffer(id){session.offer=(session.offer===id)?null:id;render()}
+function loyaltyPayV(total){
+  if(!session.user||!S.users[session.user])return '<div class="card"><b>⭐ Earn points on this bill</b><p class="mute">Log in on the 🎁 Offers tab to earn about '+Math.floor(total/100)+' points and use discounts.</p></div>';
+  var u=S.users[session.user],a=activeOffer(total),list=S.offers.filter(function(o){return o.active&&u.points>=o.cost});
+  var h='<div class="card"><div class="row"><b>⭐ '+u.points+' points</b><span class="mute">You will earn '+Math.floor((total-a.disc)/100)+' points</span></div>';
+  h+=list.length?'<div class="mute" style="margin:6px 0">Use an offer:</div><div style="display:flex;gap:8px;flex-wrap:wrap">'+list.map(function(o){return '<button class="'+(session.offer===o.id?"p":"g")+'" onclick="pickOffer(\''+o.id+'\')">'+esc(o.title)+' ('+o.cost+')</button>'}).join("")+'</div>':'<div class="mute">No offers available for your points yet.</div>';
+  if(a.off)h+='<p>🎉 Discount: <b>−'+money(a.disc)+'</b> · New total: <b>'+money(total-a.disc)+'</b></p>';
+  return h+'</div>';
+}
+
+/* Manager: loyalty */
+function loyaltyMgrV(){
+  var us=Object.keys(S.users).map(function(k){return S.users[k]}),pts=us.reduce(function(s,u){return s+u.points},0);
+  var big=function(l,v){return '<div class="card"><div class="mute">'+l+'</div><div style="font-size:22px;font-weight:700">'+v+'</div></div>'};
+  var h='<h2>🎁 Loyalty &amp; offers</h2><div class="grid">'+big("Members",us.length)+big("Points held by members",pts)+'</div>';
+  h+='<div class="card"><b>Offers (redeemed with points)</b>'+S.offers.map(function(o){return '<div class="row"><span>'+esc(o.title)+' <span class="mute">· '+o.cost+' pts</span></span><span><button class="g" onclick="toggleOffer(\''+o.id+'\')">'+(o.active?'Active ✓':'Paused')+'</button> <button class="g" onclick="delOffer(\''+o.id+'\')">Delete</button></span></div>'}).join("")+
+    '<div class="stack" style="max-width:480px;margin-top:10px"><input id="of_t" placeholder="Offer title, e.g. 15% off"><input id="of_c" inputmode="numeric" placeholder="Points needed"><select id="of_k"><option value="percent">Percent off</option><option value="amount">Rs off</option></select><input id="of_v" inputmode="numeric" placeholder="Value (e.g. 15 or 400)"><button class="p" onclick="addOffer()">Add offer</button></div></div>';
+  var top=us.slice().sort(function(a,b){return b.spent-a.spent}).slice(0,5);
+  if(top.length)h+='<div class="card"><b>Top members</b>'+top.map(function(u){return '<div class="row"><span>'+esc(u.name)+'</span><span class="mute">'+u.visits+' visits · '+money(u.spent)+' · '+u.points+' pts</span></div>'}).join("")+'</div>';
+  return h;
+}
+function toggleOffer(id){S=load();S.offers.forEach(function(o){if(o.id===id)o.active=!o.active});save();render()}
+function delOffer(id){S=load();S.offers=S.offers.filter(function(o){return o.id!==id});save();render()}
+function addOffer(){
+  S=load();var t=document.getElementById("of_t").value.trim(),c=parseInt(document.getElementById("of_c").value,10),k=document.getElementById("of_k").value,v=parseInt(document.getElementById("of_v").value,10);
+  if(!t||!(c>0)||!(v>0)||(k==="percent"&&v>100))return;
+  S.offers.push({id:"o"+(S.seq++),title:t,cost:c,type:k,value:v,active:true});note("🎁 New offer: "+t);save();render();
+}
+
+/* ---------- Loyal customer info for waiter ---------- */
+function loyalTag(ph){var u=ph&&S.users[ph];return u?'<span class="tag ready">⭐ Loyal customer · '+esc(u.name)+' · '+u.visits+' visits · '+u.points+' pts</span>':""}
+function loyalList(t){var a=(S.tables[t].users||[]).filter(function(p){return S.users[p]});return a.length?'<div style="margin:4px 0;display:flex;gap:4px;flex-wrap:wrap">'+a.map(loyalTag).join("")+'</div>':""}
+function tagUser(t){if(session.user&&S.users[session.user]){var a=S.tables[t].users=S.tables[t].users||[];if(a.indexOf(session.user)<0)a.push(session.user)}}
+
+/* ---------- Order progress tracker ---------- */
+function trackerV(o){
+  if(o.status==="rejected")return '<span class="tag rejected">Rejected by the waiter</span>';
+  var st=[["accepted","Sent to Kitchen"],["preparing","Preparing"],["ready","Ready"],["served","Served"]],ix=0;
+  st.forEach(function(x,i){if(x[0]===o.status||(o.status==="paid"&&i===3))ix=i});
+  var msg={accepted:"📨 Sent to the kitchen – waiting for the chef",preparing:"👨‍🍳 The chef is preparing your order",ready:"🔔 Ready – your waiter is bringing it",served:"✅ Served – enjoy your meal!",paid:"✅ Served"}[o.status];
+  return '<div style="display:flex;gap:4px;margin:8px 0 4px">'+st.map(function(x,i){return '<div style="flex:1"><div style="height:6px;border-radius:3px;background:'+(i<=ix?"var(--accent)":"var(--line)")+'"></div><div class="mute" style="font-size:11px;margin-top:3px;'+(i===ix?"color:var(--text);font-weight:600":"")+'">'+x[1]+'</div></div>'}).join("")+'</div><div style="font-size:14px">'+msg+'</div>';
+}
+
+/* ---------- Dish pictures & reviews ---------- */
+var EMO={1:"🥘",2:"🍛",3:"🍚",4:"🦐",5:"🫓",6:"🍋",7:"🍵",8:"🍮"};
+function dishPic(m,h){
+  var ph=S.photos&&S.photos[m.id];
+  var k=ART[m.pic]?m.pic:(CATPIC[m.cat]||"rice");
+  var art='<div role="img" aria-label="'+esc(m.name)+'" style="height:'+h+'px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#fb923c,#c2410c);overflow:hidden"><svg viewBox="0 0 100 70" style="height:100%;width:auto;max-width:100%">'+ART[k]+'</svg></div>';
+  if(ph)return '<img src="'+ph+'" alt="'+esc(m.name)+'" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:'+h+'px;object-fit:cover;border-radius:12px;display:block" onerror="this.outerHTML=this.nextElementSibling?this.nextElementSibling.innerHTML:\'\'">'+'<template>'+art+'</template>';
+  return '<div role="img" aria-label="'+esc(m.name)+'" style="height:'+h+'px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#fb923c,#c2410c);overflow:hidden"><svg viewBox="0 0 100 70" style="height:100%;width:auto;max-width:100%">'+ART[k]+'</svg></div>';
+}
+function dishStat(id){var r=S.reviews.filter(function(x){return x.item===id}),t=r.reduce(function(s,x){return s+x.stars},0);return {n:r.length,avg:r.length?t/r.length:0}}
+function toggleDish(id){session.openDish=(session.openDish===id)?null:id;session.dstars=0;session.dtext="";render()}
+function canReview(id){var t=session.table;return S.orders.some(function(o){return o.table===t.id&&o.code===t.code&&o.status==="served"&&o.items.some(function(i){return i.id===id})})}
+function setDStars(n){session.dstars=n;render()}
+function dishCard(m){
+  var q=session.cart[m.id]||0,st=dishStat(m.id),open=session.openDish===m.id;
+  var h='<div class="card dish" style="padding:10px"><div onclick="openSheet('+m.id+')" style="cursor:pointer">'+dishPic(m,110)+'</div>'+
+    '<div class="row" style="padding:8px 0 0"><b>'+m.name+'</b><span class="mute" style="white-space:nowrap">'+money(m.price)+'</span></div>'+
+    '<div class="mute" style="font-size:12px;margin-bottom:4px">'+m.desc+'</div>'+
+    (m.tags.length?'<div>'+m.tags.map(function(t){return '<span class="dtag">'+t+'</span>'}).join("")+'</div>':'')+
+    '<div class="row" style="padding:2px 0"><span style="color:#f59e0b;font-size:14px">'+(st.n?stars(Math.round(st.avg))+' <span class="mute">'+st.avg.toFixed(1)+' ('+st.n+')</span>':'<span class="mute">No reviews yet</span>')+'</span><button class="g" style="padding:3px 8px;font-size:12px" onclick="toggleDish('+m.id+')">'+(open?'Hide':'Reviews')+'</button></div>'+
+    (q?'<div class="qty on" style="margin-top:6px"><button aria-label="Remove one" onclick="chg('+m.id+',-1)">−</button><b>'+q+'</b><button aria-label="Add one" onclick="chg('+m.id+',1)">+</button></div>':'<div style="margin-top:6px"><button class="add" onclick="chg('+m.id+',1)">Add</button></div>');
+  if(open)h+=reviewsPanel(m);
+  return h+'</div>';
+}
+function reviewsPanel(m){
+  var list=S.reviews.filter(function(r){return r.item===m.id}).slice(-3).reverse();
+  var h='<hr style="margin:8px 0">'+(list.length?list.map(function(r){return '<div style="font-size:13px;margin-bottom:3px"><span style="color:#f59e0b">'+stars(r.stars)+'</span> <b>'+esc(r.name)+'</b>'+(r.text?': '+esc(r.text):'')+'</div>'}).join(""):'<div class="mute">Be the first to review this dish.</div>');
+  var key=m.id+"|"+session.table.code;
+  if((session.dr||{})[key])return h+'<div class="mute" style="margin-top:6px">Thanks for your review! 🙏</div>';
+  if(!canReview(m.id))return h+'<div class="mute" style="margin-top:6px">You can review this dish after it has been served to your table.</div>';
+  var st=session.dstars||0;
+  return h+'<div style="margin-top:8px"><div style="font-size:28px">'+[1,2,3,4,5].map(function(n){return '<span style="cursor:pointer;color:'+(n<=st?"#f59e0b":"var(--line)")+'" onclick="setDStars('+n+')">★</span>'}).join("")+'</div><input placeholder="Say something (optional)" maxlength="80" value="'+esc(session.dtext||"")+'" oninput="session.dtext=this.value" style="margin:6px 0"><button class="p" '+(st?'':'disabled')+' onclick="submitDish('+m.id+')">Submit review</button></div>';
+}
+function submitDish(id){
+  S=load();var u=session.user&&S.users[session.user],nm=u?u.name:session.name;
+  S.reviews.push({item:id,stars:session.dstars,text:(session.dtext||"").trim(),name:nm,time:Date.now()});
+  var m=MENU.filter(function(x){return x.id===id})[0];note("⭐ "+session.dstars+"/5 review for "+m.name+" by "+nm);save();
+  session.dr=session.dr||{};session.dr[id+"|"+session.table.code]=1;session.dstars=0;session.dtext="";render();
+}
+
+/* Manager: photos + reviews */
+function dishMgrV(){
+  var h='<h2>🍽️ Menu photos &amp; dish reviews</h2><div class="grid">'+MENU.map(function(m){var st=dishStat(m.id);
+    return '<div class="card" style="padding:10px">'+dishPic(m,100)+'<div class="row"><b>'+m.name+'</b><span class="mute">'+(st.n?st.avg.toFixed(1)+' ★ ('+st.n+')':'no reviews')+'</span></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><label style="display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-size:13px">Upload photo<input type="file" accept="image/*" style="display:none" onchange="upPhoto('+m.id+',this)"></label></div>'+(S.photos[m.id]?' <button class="g" onclick="delPhoto('+m.id+')">Remove</button>':'')+'</div>'}).join("")+'</div>';
+  var rv=S.reviews.slice(-5).reverse();
+  return h+'<div class="card"><b>Latest dish reviews</b>'+(rv.length?rv.map(function(r){var m=MENU.filter(function(x){return x.id===r.item})[0];return '<div class="row"><span>'+(m?m.name:"")+' <span style="color:#f59e0b">'+stars(r.stars)+'</span> '+esc(r.text||"")+'</span><span class="mute">'+esc(r.name)+'</span></div>'}).join(""):'<div class="mute">No reviews yet.</div>')+'</div>';
+}
+function upPhoto(id,inp){
+  var f=inp.files&&inp.files[0];if(!f)return;var rd=new FileReader();
+  rd.onload=function(){var im=new Image();im.onload=function(){
+    var sc=Math.min(1,360/im.width),c=document.createElement("canvas");c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);
+    c.getContext("2d").drawImage(im,0,0,c.width,c.height);S=load();S.photos[id]=c.toDataURL("image/jpeg",0.72);save();render()};im.src=rd.result};
+  rd.readAsDataURL(f);
+}
+function delPhoto(id){S=load();delete S.photos[id];save();render()}
+
+/* ---------- Table QR codes (manager) ---------- */
+var DL=null;
+try{if(window.claude&&window.claude.use)window.claude.use("downloads").then(function(d){DL=d;render()}).catch(function(){})}catch(e){}
+function siteUrl(){return S.info.siteUrl||location.href.split("#")[0].split("?")[0]}
+function tableLink(n){return siteUrl()+"#table-"+n}
+function qrSvg(text,px){
+  var q=qrcode(0,"M");q.addData(text);q.make();
+  var n=q.getModuleCount(),m=4,d=n+2*m,p="";
+  for(var r=0;r<n;r++)for(var c=0;c<n;c++)if(q.isDark(r,c))p+="M"+(c+m)+" "+(r+m)+"h1v1h-1z";
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+d+' '+d+'" width="'+px+'" height="'+px+'" shape-rendering="crispEdges"><rect width="'+d+'" height="'+d+'" fill="#fff"/><path d="'+p+'" fill="#000"/></svg>';
+}
+function qrMsg(m){session.qrMsg=m;render()}
+function saveFile(name,data){
+  if(!DL)return;
+  DL.save({filename:name,data:data}).then(function(){qrMsg("Saved "+name+" ✓")},function(e){qrMsg(e&&e.code==="declined"?"Download cancelled.":"Could not save the file ("+((e&&e.code)||"error")+").")});
+}
+function dlSvg(t){saveFile("table-"+t+"-qr.svg",qrSvg(tableLink(t),800))}
+function dlPng(t){
+  var img=new Image();
+  img.onload=function(){
+    var c=document.createElement("canvas");c.width=800;c.height=960;var x=c.getContext("2d");
+    x.fillStyle="#fff";x.fillRect(0,0,800,960);x.drawImage(img,0,0,800,800);
+    x.fillStyle="#111";x.textAlign="center";x.font="bold 64px sans-serif";x.fillText("Table "+t,400,880);
+    x.font="28px sans-serif";x.fillText(S.info.name+" · scan to order",400,932);
+    c.toBlob(function(b){if(b)saveFile("table-"+t+"-qr.png",b)},"image/png");
+  };
+  img.src="data:image/svg+xml;base64,"+btoa(qrSvg(tableLink(t),800));
+}
+function dlSheet(){
+  var cards=Object.keys(S.tables).map(function(t){return '<div class="c"><div class="n">'+esc(S.info.name)+'</div>'+qrSvg(tableLink(t),260)+'<div class="t">Table '+t+'</div><div class="s">Scan the QR code or tap your phone on the NFC tag to order</div></div>'}).join("");
+  var html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Table QR codes</title><style>@page{size:A4;margin:12mm}body{font-family:sans-serif;margin:0}.g{display:grid;grid-template-columns:1fr 1fr;gap:10mm}.c{border:1px dashed #999;border-radius:8px;padding:8mm;text-align:center;break-inside:avoid}.n{font-size:16pt;font-weight:700}.t{font-size:28pt;font-weight:800;margin:4mm 0}.s{font-size:10pt;color:#444}svg{width:60mm;height:60mm}</style></head><body><div class="g">'+cards+'</div></body></html>';
+  saveFile("table-qr-sheet.html",html);
+}
+function copyLink(t){
+  var l=tableLink(t);
+  try{navigator.clipboard.writeText(l).then(function(){qrMsg("Link for Table "+t+" copied")},function(){qrMsg("Copy was blocked. Select the link under the QR code and copy it by hand.")})}
+  catch(e){qrMsg("Copy was blocked. Select the link under the QR code and copy it by hand.")}
+}
+function saveSite(){S=load();S.info.siteUrl=document.getElementById("site_url").value.trim();save();qrMsg("Address saved. QR codes updated.")}
+function addTable(){S=load();var n=Object.keys(S.tables).length;if(n>=40)return;S.tables[n+1]={code:null};note("➕ Table "+(n+1)+" added");save();render()}
+function removeTable(){S=load();var n=Object.keys(S.tables).length;if(n<=1||S.tables[n].code)return qrMsg("Only a closed table can be removed.");delete S.tables[n];note("➖ Table "+n+" removed");save();render()}
+function qrMgrV(){
+  var h='<h2>📱 Table QR codes</h2><div class="card"><div class="mute">Each table tag opens the ordering page with that table already chosen. The tag holds no code, so scanning from home cannot place an order: the waiter still has to open the table. Write the same link to an NFC tag (any NFC writer app, “URL” record) for tap-to-order.</div><div class="stack" style="max-width:480px;margin-top:10px"><label class="mute">Website address used in the QR codes</label><input id="site_url" value="'+esc(siteUrl())+'"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="p" onclick="saveSite()">Save address</button>'+(DL?'<button class="g" onclick="dlSheet()">⬇ Printable sheet (all tables)</button>':'')+'</div></div>'+(session.qrMsg?'<div class="mute" style="margin-top:8px">'+esc(session.qrMsg)+'</div>':'')+'</div>';
+  if(typeof qrcode!=="function")return h+'<div class="card err">The QR code library could not load. Check your internet connection and reload the page.</div>';
+  h+='<div class="grid">'+Object.keys(S.tables).map(function(t){var link=tableLink(t);
+    return '<div class="card" style="text-align:center"><b>Table '+t+'</b><div style="max-width:180px;margin:8px auto;border-radius:8px;overflow:hidden">'+qrSvg(link,180)+'</div><div style="word-break:break-all;font-size:11px;color:var(--mute)">'+esc(link)+'</div><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center">'+(DL?'<button class="p" onclick="dlPng('+t+')">⬇ PNG</button><button class="g" onclick="dlSvg('+t+')">⬇ SVG</button>':'')+'<button class="g" onclick="copyLink('+t+')">Copy link</button></div></div>'}).join("")+'</div>';
+  h+='<p><button class="g" onclick="addTable()">+ Add table</button> <button class="g" onclick="removeTable()">− Remove last table</button></p>';
+  if(!DL)h+='<p class="mute">Downloads are not available in this view. Open the page in claude.ai to save QR images. You can still scan the codes on screen or copy the links.</p>';
+  return h;
+}
+
+/* ---------- Waiter ---------- */
+function waiterBody(){
+  var h=whoV()+alertsV()+'<!--S:orders--><h2>Table requests</h2>';
+  var rq=S.reqs.filter(function(r){return r.status==="pending"});
+  h+=rq.length?rq.map(function(r){var busy=!!S.tables[r.table].code;
+    return '<div class="card"><div class="row"><b>Table '+r.table+' – customer wants to sit</b><span class="mute">'+new Date(r.time).toLocaleTimeString()+'</span></div>'+(r.user?'<div style="margin:4px 0">'+loyalTag(r.user)+'</div>':'')+'<div class="mute">'+(busy?'This table is already open.':'Check someone is really at the table, then accept. A one-time table code is created.')+'</div><div style="margin-top:8px;display:flex;gap:8px"><button class="ok" '+(busy?'disabled':'')+' onclick="acceptReq('+r.id+')">Accept → create code</button><button class="no" onclick="rejectReq('+r.id+')">Reject</button></div></div>'}).join(""):'<p class="mute">No pending table requests.</p>';
+  h+='<!--S:tables--><h2>Tables</h2><div class="grid">'+Object.keys(S.tables).map(function(t){
+    var c=S.tables[t].code;
+    if(!c)return '<div class="card"><div class="row"><b>Table '+t+'</b><span class="tag closed">Closed</span></div><div class="mute">No code. Waiting for a customer request.</div></div>';
+    var b=bill(t,c);
+    return '<div class="card"><div class="row"><b>Table '+t+'</b><span class="tag open">Open</span></div><div class="mute">Waiter: '+(S.tables[t].waiter||"–")+'</div>'+loyalList(t)+'<div class="code">'+c+'</div><div class="mute" style="margin-top:6px">Bill: '+money(b.total)+(b.open?' · '+b.open+' not served yet':'')+'</div><div style="margin-top:8px"><button class="ok" '+(b.pending?'disabled':'')+' onclick="pay('+t+')">Paid → close table</button>'+(b.pending?'<div class="err">Handle pending orders first.</div>':'')+'</div></div>'}).join("")+'</div>';
+  var rdy=S.orders.filter(function(o){return o.status==="ready"});
+  var kit=S.orders.filter(function(o){return o.status==="accepted"||o.status==="preparing"});
+  h+='<!--S:serve--><h2>In the kitchen</h2>';
+  h+=kit.length?kit.map(function(o){return '<div class="card"><div class="row"><span><b>Table '+o.table+'</b> – '+fmt(o.items)+noteOf(o)+'</span><span class="tag '+o.status+'">'+(o.status==="preparing"?"👨‍🍳 Preparing":"Waiting for chef")+'</span></div></div>'}).join(""):'<p class="mute">Nothing in the kitchen.</p>';
+  h+='<h2>Ready to serve</h2>';
+  h+=rdy.length?rdy.map(function(o){return '<div class="card"><div class="row"><span><b>Table '+o.table+'</b> – '+fmt(o.items)+noteOf(o)+'</span><button class="p" onclick="setS('+o.id+',\'served\')">Mark served</button></div></div>'}).join(""):'<p class="mute">Nothing ready.</p>';
+  return h+'<p><button class="g" onclick="wipe()">Reset demo data</button></p>';
+}
+
+var AC=null,SND=true;try{SND=localStorage.getItem("snd")!=="0"}catch(e){}
+function audio(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume()}catch(e){}}
+document.addEventListener("pointerdown",function(){if(SND)audio()});
+function beep(kind){if(!SND)return;audio();if(!AC)return;(kind==="chef"?[880,880,1175]:kind==="cust"?[784,988,1319]:[660,880,660]).forEach(function(f,i){var o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime+i*.2;o.type="sine";o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.35,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.17);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+.18)})}
+function toggleSnd(){SND=!SND;try{localStorage.setItem("snd",SND?"1":"0")}catch(e){}if(SND)beep(view==="kitchen"?"chef":"waiter");render()}
+function checkAlerts(){
+  if(!role&&view==="customer"&&session.table&&S.tables[session.table.id]){var t=session.table,rk={accepted:1,preparing:2,ready:3,served:4,paid:4},sc=S.orders.filter(function(o){return o.table===t.id&&o.code===t.code}).reduce(function(a,o){return a+(rk[o.status]||0)},0);
+    if(session.cs!==undefined&&sc>session.cs)beep("cust");session.cs=sc;return}
+  if(!role||(view!=="waiter"&&view!=="kitchen"))return;
+  var n=view==="kitchen"?S.orders.filter(function(o){return o.status==="accepted"}).length:S.orders.filter(function(o){return o.status==="ready"}).length+S.reqs.filter(function(r){return r.status==="pending"}).length+S.calls.filter(function(c){return c.status==="open"}).length;
+  session.pc=session.pc||{};if(session.pc[view]!==undefined&&n>session.pc[view])beep(view==="kitchen"?"chef":"waiter");session.pc[view]=n;
+}
+function stab(t){session.st=session.st||{};session.st[view]=t;render()}
+function shellV(items,title,who,stats,body){
+  var cur=(session.st||{})[view]||items[0][0];var it=items.filter(function(x){return x[0]===cur})[0]||items[0];
+  return '<div class="mshell"><aside class="msb"><div class="brand">🍽️ <em>'+esc((S.info&&S.info.name)||"Restaurant")+'</em></div>'+items.map(function(x){return '<button class="'+(x[0]===it[0]?'on':'')+'" onclick="stab(\''+x[0]+'\')"><span>'+x[1]+'</span>'+x[2]+(x[3]?' <span class="cnt" style="margin-left:auto">'+x[3]+'</span>':'')+'</button>'}).join("")+'<hr><button onclick="toggleSnd()"><span>'+(SND?'🔔':'🔕')+'</span>Sound '+(SND?'on':'off')+'</button><button onclick="lock()"><span>🚪</span>Sign out</button></aside><section><div class="mtop"><div><div class="crumb">'+who+' › <b>'+it[2]+'</b></div><h1>'+it[2]+'</h1></div><div class="mute">'+new Date().toLocaleString([],{dateStyle:"medium",timeStyle:"short"})+'</div></div><div class="stats">'+stats.map(function(s){return '<div class="card stat"><small>'+s[0]+'</small><b>'+s[1]+'</b></div>'}).join("")+'</div>'+body(it[0])+'</section></div>';
+}
+function waiterV(){
+  var out=waiterBody(),parts=out.split(/<!--S:(\w+)-->/),pre=parts[0],sec={orders:"",tables:"",serve:""};
+  for(var i=1;i<parts.length;i+=2)sec[parts[i]]+=parts[i+1];
+  var O=S.orders,np=S.reqs.filter(function(r){return r.status==="pending"}).length,nr=O.filter(function(o){return o.status==="ready"}).length;
+  var open=Object.keys(S.tables).filter(function(k){return S.tables[k].code}).length;
+  var kit=O.filter(function(o){return o.status==="accepted"||o.status==="preparing"}).length;
+  return shellV([["tables","🪑","Tables",open],["orders","🧾","Orders & Requests",np||""],["serve","🍽️","Kitchen & Serve",nr||""]],"Waiter","Waiter",
+    [["Open tables",open+" / "+Object.keys(S.tables).length],["To check",np],["In kitchen",kit],["Ready to serve",nr]],
+    function(k){return pre+sec[k]});
+}
+function kitchenV(){
+  var A=S.orders.filter(function(o){return o.status==="accepted"}),P=S.orders.filter(function(o){return o.status==="preparing"});
+  var late=A.concat(P).filter(function(o){return Date.now()-o.time>=9e5}).length;
+  return shellV([["board","👨‍🍳","Orders board",A.length||""]],"Kitchen","Kitchen",[["New",A.length],["Preparing",P.length],["Late (15+ min)",late]],function(){return kitchenBody()});
+}
+function acceptReq(id){S=load();var r=S.reqs.filter(function(x){return x.id===id})[0];if(!r||S.tables[r.table].code)return;r.code=newCode();r.status="accepted";S.tables[r.table].code=r.code;S.tables[r.table].waiter=session.waiter;S.tables[r.table].users=r.user?[r.user]:[];note("✅ Table "+r.table+" opened – waiter "+session.waiter+(r.user&&S.users[r.user]?" · loyal customer "+S.users[r.user].name:""));save();render()}
+function rejectReq(id){S=load();S.reqs.forEach(function(r){if(r.id===id)r.status="rejected"});save();render()}
+function setS(id,st){S=load();S.orders.forEach(function(o){if(o.id===id){o.status=st;note(({accepted:"👨‍🍳 Order accepted",preparing:"🔥 Chef is preparing",ready:"🔔 Order ready",served:"🍽️ Order served",rejected:"❌ Order rejected"})[st]+" – Table "+o.table+": "+fmt(o.items))}});save();render()}
+function pay(t,method,user,offerId){S=load();var _cc=S.calls.filter(function(c){return c.table==t&&c.type==="cash"})[0];method=method||(_cc?"Cash":"At table");var _b=bill(t,S.tables[t].code);var _uph=user||(_cc&&_cc.user),_oid=offerId||(_cc&&_cc.offer),_off=S.offers.filter(function(o){return o.id===_oid})[0],_u=_uph&&S.users[_uph],_disc=(_u&&_off&&_u.points>=_off.cost)?discountOf(_off,_b.total):0;if(!_disc)_off=null;_b={total:_b.total-_disc};S.payments.unshift({table:t,method:method,amount:_b.total,time:Date.now()});S.payments=S.payments.slice(0,8);var _it={},_n=0;S.orders.forEach(function(o){if(o.table==t&&o.code===S.tables[t].code&&(o.status==="accepted"||o.status==="preparing"||o.status==="ready"||o.status==="served")){_n++;o.items.forEach(function(i){_it[i.name]=(_it[i.name]||0)+i.qty})}});S.paid.push({time:Date.now(),table:t,method:method,amount:_b.total,orders:_n,items:_it});note("💰 Table "+t+" paid "+money(_b.total)+" by "+method);if(_u){var _earn=Math.floor(_b.total/100),_bn=0;if(_off)_u.points-=_off.cost;_u.points+=_earn;_u.visits++;_u.spent+=_b.total;if(_u.visits%5===0){_u.points+=20;_bn=20}note("⭐ "+_u.name+" earned "+_earn+" pts"+(_bn?" (+20 visit bonus)":"")+(_off?" and used “"+_off.title+"”":""));}S.calls=S.calls.filter(function(c){return c.table!=t});var c=S.tables[t].code;S.orders.forEach(function(o){if(o.table==t&&o.code===c&&o.status==="served")o.status="paid"});S.tables[t].code=null;S.tables[t].users=[];S.games=S.games.filter(function(x){return !(x.table==t&&x.scope==="table")});save();render()}
+function wipe(){S=fresh();save();session.table=null;session.reqId=null;session.cart={};session.err="";render()}
+
+/* ---------- Kitchen ---------- */
+function kitchenBody(){
+  var byAge=function(a,b){return a.time-b.time};
+  var nw=S.orders.filter(function(o){return o.status==="accepted"}).sort(byAge),pr=S.orders.filter(function(o){return o.status==="preparing"}).sort(byAge);
+  var card=function(o,btn){var m=Math.floor((Date.now()-o.time)/60000);return '<div class="card'+(m>=15?' late':'')+'"><div class="row"><b>Table '+o.table+' · #'+o.id+'</b><span class="'+(m>=15?'err':'mute')+'" style="margin:0">'+m+' min ago'+(m>=15?' – late':'')+'</span></div><div style="font-size:17px;margin:4px 0 10px">'+fmt(o.items)+noteOf(o)+'</div>'+btn+'</div>'};
+  var h='<div class="board"><div><h2>🆕 New orders</h2>'+(nw.length?nw.map(function(o){return card(o,'<button class="p" onclick="setS('+o.id+',\'preparing\')">👨‍🍳 Start preparing</button>')}).join(""):'<p class="mute">No new orders. Orders appear here automatically when customers order.</p>');
+  h+='</div><div><h2>🔥 Preparing</h2>'+(pr.length?pr.map(function(o){return card(o,'<button class="ok" onclick="setS('+o.id+',\'ready\')">Mark ready</button>')}).join(""):'<p class="mute">Nothing is being prepared.</p>');
+  return h+'</div></div>';
+}
+function route(){var h=location.hash.slice(1),m=/^table-(\d+)$/.exec(h);if(m){qrMode=true;view="customer";session.scan=+m[1]}else if(VIEWS.indexOf(h)>-1)view=qrMode?"customer":h}
+window.addEventListener("hashchange",function(){route();render()});
+route();
+render();
+</script>
+</body>
+</html>
